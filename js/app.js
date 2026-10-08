@@ -2,7 +2,7 @@
 (function () {
   var CA = window.CA = window.CA || {};
   var U = CA.util, Sch = CA.sched, Store = CA.store, V = CA.views;
-  CA.VERSION = '1.0.0';
+  CA.VERSION = '1.1.0';
   var ALL = [0, 1, 2, 3, 4, 5, 6];
 
   var state = null, root = null;
@@ -22,7 +22,8 @@
     var y = window.scrollY;
     var ae = document.activeElement, aid = ae && ae.id, sel = null;
     try { if (ae && ae.selectionStart != null) sel = [ae.selectionStart, ae.selectionEnd]; } catch (e) { sel = null; }
-    root.innerHTML = V.screen(state, ui) + V.nav(ui) + (ui.sheet ? V.sheet(state, ui) : '') + V.toast(ui);
+    Sch.beginPass();
+    try { root.innerHTML = V.screen(state, ui) + V.nav(ui) + (ui.sheet ? V.sheet(state, ui) : '') + V.toast(ui); } finally { Sch.endPass(); }
     document.body.style.overflow = ui.sheet ? 'hidden' : '';
     var key = sheetKey();
     if (ui.sheet && key === lastSheetKey) { var s2 = root.querySelector('.sheet'); if (s2) s2.scrollTop = sTop; }
@@ -77,10 +78,10 @@
       } else if (ds.edit === 'task') {
         var k = state.tasks.find(function (x) { return x.id === ds.id; });
         if (!k) return;
-        s.draft = { mode: 'task', editId: k.id, title: k.title, date: k.date || '', catId: k.catId, projectId: k.projectId || '', res: {} };
+        s.draft = { mode: 'task', editId: k.id, title: k.title, tmode: k.mode || 'day', date: k.date || '', time: k.time || '', due: k.due || '', estH: k.est ? String(Math.round(k.est / 60 * 100) / 100).replace('.', ',') : '', chunk: k.chunk || 60, spent: k.spent || 0, catId: k.catId, projectId: k.projectId || '', res: {} };
       } else {
         var p = ds.proj ? Sch.proj(state, ds.proj) : null;
-        s.draft = { mode: ds.mode || 'event', title: '', date: ds.date || ui.cal.sel || t, start: '', end: '', allDay: false, travel: '', catId: p ? p.catId : null, projectId: p ? p.id : '', note: '', res: {} };
+        s.draft = { mode: ds.mode || 'event', title: '', date: ds.proj && ds.mode === 'task' ? '' : (ds.date || ui.cal.sel || t), start: '', end: '', allDay: false, travel: '', catId: p ? p.catId : null, projectId: p ? p.id : '', note: '', res: {}, tmode: 'day', time: '', due: '', estH: '', chunk: 60, spent: 0 };
       }
       s.id = ds.id || 'new';
     } else if (type === 'projForm') {
@@ -107,6 +108,8 @@
       var tr = ds.id ? state.treasures.find(function (x) { return x.id === ds.id; }) : null;
       s.draft = tr ? JSON.parse(JSON.stringify(tr)) : { title: '', type: 'book', seen: '', buy: '', link: '', date: '', got: false };
       s.id = ds.id || 'new';
+    } else if (type === 'ideaCat') {
+      s.draft = { name: '' }; s.target = ds.target;
     } else if (type === 'weight') {
       var lw = state.metricLogs[t] && state.metricLogs[t].m_weight;
       s.draft = { date: t, v: lw != null ? String(lw).replace('.', ',') : '' };
@@ -207,6 +210,15 @@
     var it = day.items.find(function (i) { return i.id === d.id; });
     if (!it) return;
     it.done = !it.done; it.doneAt = it.done ? Date.now() : null;
+    if (it.kind === 'task') {
+      var tk = state.tasks.find(function (x) { return x.id === it.refId; });
+      if (tk && tk.mode === 'due') {
+        tk.spent = Math.max(0, (tk.spent || 0) + (it.done ? it.dur : -it.dur));
+        if (it.done && tk.est && tk.spent >= tk.est && !tk.done) { tk.done = true; tk.doneAt = Date.now(); commit(); toast('„' + tk.title + '” kész. Szép munka.'); return; }
+        if (!it.done && tk.done && tk.spent < tk.est) tk.done = false;
+        if (it.done) { commit(); toast('Levonva. Még ' + U.num(Math.max(0, tk.est - tk.spent) / 60, 1) + ' óra van hátra belőle.'); return; }
+      } else if (tk) { tk.done = it.done; tk.doneAt = it.doneAt; }
+    }
     commit();
   };
   A.star = function (d) {
@@ -226,8 +238,8 @@
   A.taskMove = function (d) {
     var i = state.tasks.findIndex(function (x) { return x.id === d.id; }); if (i < 0) return;
     if (d.to === 'del') { var gone = state.tasks.splice(i, 1)[0]; commit(); toast('„' + gone.title + '" törölve.'); return; }
-    var t = state.tasks[i];
-    t.date = d.to === 'today' ? U.today() : U.addDays(U.today(), 1);
+    var t = state.tasks[i], to = d.to === 'today' ? U.today() : U.addDays(U.today(), 1);
+    if (t.mode === 'due') t.due = to; else t.date = to;
     t.pushes = (t.pushes || 0) + 1;
     commit();
   };
@@ -255,7 +267,7 @@
     var info = Sch.getDay(state, d.date), it = info.items.find(function (i) { return i.id === d.id; });
     if (!it) return;
     if (info.fixed) { it.start = U.toMin(v); it.end = it.start + it.dur; Sch.markConflicts(info.day.items); Sch.sortItems(info.day.items); }
-    else state.overrides[it.refId + '|' + d.date] = { time: v };
+    else state.overrides[(it.kind === 'task' ? 'k:' : '') + it.refId + '|' + d.date] = { time: v };
     closeAll(); Store.save(state); toast('Áthelyezve: ' + v + '.');
   };
   A.addToday = function (d) {
@@ -302,6 +314,32 @@
     state.ideas = state.ideas.filter(function (x) { return x.id !== ui.sheet.id; });
     closeSheet(); commit();
   };
+  A.saveIdeaCat = function () {
+    var d = ui.sheet.draft, name = (d.name || '').trim();
+    if (!name) { toast('Adj nevet a kategóriának.'); return; }
+    var p = { id: 'p_' + U.uid(), name: name, catId: 'write', kind: 'collection', goal: { type: 'none' }, deadline: null, countdown: false, createdAt: Date.now() };
+    if (!Sch.cat(state, 'write')) p.catId = state.categories[0].id;
+    state.projects.push(p);
+    var target = ui.sheet.target;
+    ui.sheet = ui.stack.pop() || null;
+    if (target === 'draft' && ui.sheet && ui.sheet.draft) ui.sheet.draft.projectId = p.id;
+    else ui.q.proj = p.id;
+    commit(); toast('„' + name + '” kategória kész.');
+  };
+  A.cycleToggle = function () {
+    var c = state.settings.cycle; c.on = !c.on; commit();
+  };
+  A.cycleUseAvg = function (d) { state.settings.cycle.len = +d.v; commit(); };
+  A.periodAdd = function (d) {
+    var ps = state.periods = state.periods || [];
+    var per = parseInt(state.settings.cycle.period, 10) || 5;
+    // ha ugyanannak a menstruációnak a közepén jelöli, a korábbi kezdetet cseréli
+    state.periods = ps.filter(function (x) { var g = U.diffDays(x, d.d); return g < 0 || g >= per; });
+    state.periods.push(d.d); state.periods.sort();
+    commit(); toast('Rögzítve. A következő kezdetet ehhez igazítom.');
+  };
+  A.periodDel = function (d) { state.periods = (state.periods || []).filter(function (x) { return x !== d.d; }); commit(); };
+
   A.saveTreasure = function () {
     var d = ui.sheet.draft;
     if (!(d.title || '').trim()) { toast('Adj neki nevet.'); return; }
@@ -336,10 +374,19 @@
       Object.keys(d.res || {}).forEach(function (id) { if (d.res[id]) Sch.resolve(state, d.date, id, d.res[id]); });
       closeSheet(); commit(); toast(d.editId ? 'Esemény frissítve.' : 'Bekerült a naptárba: ' + U.fmtLong(d.date) + '.');
     } else {
-      var t = d.editId ? state.tasks.find(function (x) { return x.id === d.editId; }) : { id: U.uid(), done: false, pushes: 0, createdAt: Date.now() };
-      Object.assign(t, { title: d.title.trim(), date: d.date || null, projectId: d.projectId || null, catId: d.catId || (p && p.catId) || null });
+      var est = V.estMinutes(d.estH), due = d.tmode === 'due';
+      if (due && !d.due) { toast('Add meg a határidőt.'); return; }
+      if (due && !est) { toast('Add meg, mennyi időt szánsz rá.'); return; }
+      var t = d.editId ? state.tasks.find(function (x) { return x.id === d.editId; }) : { id: U.uid(), done: false, pushes: 0, spent: 0, createdAt: Date.now() };
+      Object.assign(t, { title: d.title.trim(), mode: due ? 'due' : 'day', date: due ? null : (d.date || null), time: due ? null : (d.time || null), due: due ? d.due : null, est: est, chunk: due ? (+d.chunk || 60) : null, projectId: d.projectId || null, catId: d.catId || (p && p.catId) || null });
+      if (due && t.done && t.spent < t.est) t.done = false;
       if (!d.editId) state.tasks.push(t);
-      closeSheet(); commit(); toast(d.editId ? 'Feladat frissítve.' : 'Feladat elmentve.');
+      closeSheet(); commit();
+      if (due) {
+        var plan = Sch.taskPlan(state, t), keys = Object.keys(plan).sort();
+        var inToday = state.days[U.today()] && state.days[U.today()].items.some(function (i) { return i.refId === t.id && !i.done; });
+        toast(keys.length || inToday ? 'Ütemezve ' + U.untilDay(t.due) + (keys.length ? ', első alkalom: ' + U.relDay(keys[0]) : ', ma') + '.' : 'Elmentve.');
+      } else toast(d.editId ? 'Feladat frissítve.' : (t.date ? 'Feladat elmentve: ' + U.relDay(t.date) + '.' : 'Feladat elmentve. A heti tervezésnél osztod be.'));
     }
   };
   A.delEntry = function () {
@@ -462,6 +509,17 @@
     state.settings[k] = k === 'weighDay' ? parseInt(el.value, 10) : el.value;
     commit();
   };
+  CH.cycle = function (el) {
+    var n = parseInt(el.value, 10);
+    if (!n) return;
+    if (el.dataset.k === 'len') n = Math.max(15, Math.min(60, n));
+    else n = Math.max(1, Math.min(14, n));
+    state.settings.cycle[el.dataset.k] = n; commit();
+  };
+  CH.periodLast = function (el) {
+    if (!el.value) return;
+    if ((state.periods || []).indexOf(el.value) < 0) A.periodAdd({ d: el.value }); else commit();
+  };
   CH.catName = function (el) { var c = Sch.cat(state, el.dataset.id); if (c && el.value.trim()) { c.name = el.value.trim(); commit(); } };
   CH.import = function (el) {
     var f = el.files && el.files[0]; if (!f) return;
@@ -485,11 +543,18 @@
     });
     root.addEventListener('input', function (e) {
       var el = e.target;
+      if (el.value === '__new' && el.tagName === 'SELECT') {
+        var prev = el.dataset.bind ? getPath(ui.sheet.draft, el.dataset.bind) : getPath(ui, el.dataset.bindui);
+        el.value = prev || '';
+        openSheet('ideaCat', { target: el.dataset.bind ? 'draft' : 'q' });
+        return;
+      }
       if (el.dataset.bind && ui.sheet && ui.sheet.draft) setPath(ui.sheet.draft, el.dataset.bind, el.value);
       else if (el.dataset.bindui) setPath(ui, el.dataset.bindui, el.value);
     });
     root.addEventListener('change', function (e) {
       var el = e.target;
+      if (el.value === '__new') return;
       if (el.dataset.change && CH[el.dataset.change]) CH[el.dataset.change](el);
       else if (el.dataset.rerender) {
         if (el.dataset.bind && ui.sheet && ui.sheet.draft) setPath(ui.sheet.draft, el.dataset.bind, el.value);

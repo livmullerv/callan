@@ -37,6 +37,15 @@ Az adataid **a telefonodon** vannak, nem a GitHubon.
 2. A `sw.js` elején a `VERSION` értéke minden kiadásnál nő — ezt a kapott fájlokban már átírva kapod.
 3. A telefonon az app következő megnyitásakor Callan szól, hogy új verzió érkezett → **Frissítés**. Az adataid megmaradnak.
 
+## Változások
+
+**1.1.0**
+- A feladatok az idővonalra kerülnek. Kétféle ütemezés: *Adott napon* (rászánt idővel, opcionális kezdéssel) és *Határidőig* (a rászánt időt az app felosztja a határidőig hátralévő napokra, csak oda, ahol van elég szabad idő; a kipipált blokkok levonódnak, a maradék újraoszlik).
+- Ötleteknél a legördülőből új kategória vehető fel (az Írói munka alá kerül gyűjtőként).
+- Ciklusnaptár: Beállítások → Ciklusnaptár. A Naptárban csepp jelöli a napokat (teli: rögzített, körvonalas: várható).
+- A visszaállítás a `.txt` mentést is felajánlja a fájlválasztóban.
+- A korábbi adatok frissítéskor automatikusan átalakulnak, semmi nem vész el.
+
 ## Fontos
 
 - **Ne nevezd át a repót.** A tárolt adatok a címhez kötődnek, új címen az app üresen indul.

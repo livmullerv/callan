@@ -107,7 +107,7 @@
   Sch.markConflicts = function (items) {
     items.forEach(function (i) { delete i.conflict; delete i.conflictWith; });
     var hard = items.filter(function (i) { return (i.kind === 'event' || i.kind === 'travel') && !i.allDay && i.start != null; });
-    var acts = items.filter(function (i) { return i.kind === 'activity' && i.start != null; }).sort(function (a, b) { return a.start - b.start; });
+    var acts = items.filter(function (i) { return (i.kind === 'activity' || i.kind === 'task') && i.start != null; }).sort(function (a, b) { return a.start - b.start; });
     acts.forEach(function (it, idx) {
       var hit = hard.find(function (h) { return overlap(h, it); });
       if (!hit) hit = acts.slice(0, idx).find(function (o) { return !o.conflict && overlap(o, it); });
@@ -145,7 +145,110 @@
     return it;
   };
 
-  Sch.projectDay = function (state, date) {
+  /* ---------- Feladatok ---------- */
+  function taskCat(state, t) { return t.catId || (Sch.proj(state, t.projectId) || {}).catId || null; }
+  Sch.taskCat = taskCat;
+  Sch.task = function (state, id) { return state.tasks.find(function (t) { return t.id === id; }) || null; };
+
+  function taskItem(state, t, items, dur, time, date) {
+    var catId = taskCat(state, t);
+    var it = { id: 'k:' + t.id, kind: 'task', refId: t.id, title: t.title, projectId: t.projectId || null, catId: catId, dur: dur, important: t.mode === 'due', done: false };
+    if (time) { it.start = U.toMin(time); it.end = it.start + dur; }
+    else {
+      var from = (date === U.today() && state.days[date]) ? U.nowMin() : null;
+      var s = Sch.findSlot(state, items, dur, catId, from);
+      it.start = s; it.end = s == null ? null : s + dur; it.auto = true;
+    }
+    return it;
+  }
+  Sch.taskItem = taskItem;
+
+  var pass = null;
+  Sch.beginPass = function () { pass = {}; };
+  Sch.endPass = function () { pass = null; };
+  function maxGap(state, date, catId) {
+    var key = date + '|' + (LEISURE[catId] ? 'l' : 'w');
+    if (pass && pass[key] != null) return pass[key];
+    var st = state.settings, ws = U.toMin(st.workStart), we = U.toMin(st.workEnd), cut = U.toMin(st.screenCut);
+    var lo = LEISURE[catId] ? we : ws, hi = LEISURE[catId] ? cut : we;
+    var day = state.days[date];
+    var items = (day ? day.items : Sch.projectDay(state, date, true)).filter(function (i) { return i.start != null && i.kind !== 'close' && !i.allDay && i.end > lo && i.start < hi; })
+      .sort(function (a, b) { return a.start - b.start; });
+    var best = 0, cur = lo;
+    items.forEach(function (i) { if (i.start > cur) best = Math.max(best, i.start - cur); cur = Math.max(cur, i.end); });
+    best = Math.max(best, hi - cur);
+    best = Math.floor(best / 15) * 15;
+    if (pass) pass[key] = best;
+    return best;
+  }
+
+  /* Határidős feladat: a hátralévő időt felosztja a határidőig hátralévő napokra.
+     Visszaad: { 'ÉÉÉÉ-HH-NN': perc, ... } – a mai (már rögzített) nap nélkül. */
+  Sch.taskPlan = function (state, t) {
+    var plan = {};
+    if (!t || t.done || t.mode !== 'due' || !t.due || !t.est) return plan;
+    var today = U.today(), fixedToday = state.days[today];
+    var start = fixedToday ? U.addDays(today, 1) : today;
+    var pending = 0;
+    if (fixedToday) fixedToday.items.forEach(function (i) { if (i.kind === 'task' && i.refId === t.id && !i.done) pending += i.dur; });
+    var rem = (t.est || 0) - (t.spent || 0) - pending;
+    if (rem <= 0 || t.due < start) return plan;
+    var leisure = LEISURE[taskCat(state, t)], L = [];
+    for (var d = start; d <= t.due; d = U.addDays(d, 1)) {
+      if (!leisure && U.dow(d) >= 5 && d !== t.due) continue;
+      var ov = state.overrides['k:' + t.id + '|' + d];
+      if (ov && ov.skip) continue;
+      L.push(d);
+    }
+    if (!L.length) L = [t.due];
+    var cat = taskCat(state, t), chunk = Math.max(15, t.chunk || 60);
+    // Csak olyan napra tesz blokkot, ahol van elég összefüggő szabad idő.
+    var cap = {};
+    L.forEach(function (d) { cap[d] = Math.min(maxGap(state, d, cat), 180); });
+    var roomy = L.filter(function (d) { return cap[d] >= Math.min(chunk, rem); });
+    var left = rem, n = Math.ceil(rem / chunk);
+    if (roomy.length && n <= roomy.length) {
+      for (var j = 0; j < n && left > 0; j++) {
+        var day = roomy[Math.floor(j * roomy.length / n)], m = Math.min(chunk, left);
+        plan[day] = m; left -= m;
+      }
+      return plan;
+    }
+    // Kevés a hely: minden szabad napra jut, a nagyobb hézagokba többet tesz.
+    var usable = L.filter(function (d) { return cap[d] >= 30; });
+    if (!usable.length) usable = [t.due];
+    var per = Math.max(30, Math.ceil(left / usable.length / 15) * 15);
+    usable.forEach(function (d) {
+      if (left <= 0) return;
+      var m = Math.min(left, Math.max(per, 0), cap[d] >= 30 ? cap[d] : per);
+      plan[d] = m; left -= m;
+    });
+    for (var k = usable.length - 1; left > 0 && k >= 0; k--) { plan[usable[k]] += left; left = 0; }
+    return plan;
+  };
+  Sch.taskRemaining = function (t) { return Math.max(0, (t.est || 0) - (t.spent || 0)); };
+
+  function taskEntries(state, date) {
+    var out = [];
+    state.tasks.forEach(function (t) {
+      if (t.done) return;
+      var ov = state.overrides['k:' + t.id + '|' + date] || {};
+      if (t.mode === 'due') {
+        var m = Sch.taskPlan(state, t)[date];
+        if (m) out.push({ t: t, dur: m, time: ov.time || null, unplaced: !!ov.unplaced });
+      } else if (t.date === date) {
+        out.push({ t: t, dur: t.est || 30, time: ov.time || t.time || null, unplaced: !!ov.unplaced });
+      }
+    });
+    out.sort(function (x, y) {
+      if (!!x.time !== !!y.time) return x.time ? -1 : 1;
+      if (x.time) return U.toMin(x.time) - U.toMin(y.time);
+      return (x.t.mode === 'due' ? 0 : 1) - (y.t.mode === 'due' ? 0 : 1) || ((x.t.due || '') < (y.t.due || '') ? -1 : 1);
+    });
+    return out;
+  }
+
+  Sch.projectDay = function (state, date, noTasks) {
     var st = state.settings, items = [];
     var wake = U.toMin(st.wake), ws = U.toMin(st.workStart), lunch = U.toMin(st.lunch), cut = U.toMin(st.screenCut);
     items.push({ id: 't:wake', kind: 'template', title: 'Ébredés, reggeli rutin', start: wake, end: ws });
@@ -168,6 +271,11 @@
       if (o.unplaced) { it.start = null; it.end = null; }
       items.push(it);
     });
+    if (!noTasks && date >= U.today()) taskEntries(state, date).forEach(function (o) {
+      var it = taskItem(state, o.t, items, o.dur, o.unplaced ? null : o.time, date);
+      if (o.unplaced) { it.start = null; it.end = null; }
+      items.push(it);
+    });
     Sch.markConflicts(items);
     return Sch.sortItems(items);
   };
@@ -187,15 +295,57 @@
         else { fresh.done = old.done; Object.assign(old, fresh); }
       });
     });
+    syncTasks(state, date, day);
     Sch.markConflicts(day.items);
     Sch.sortItems(day.items);
     return { fixed: true, items: day.items, top3: day.top3 || [], day: day };
   };
 
+  /* Rögzített napon a feladatok követik a változásokat (új, áttett, törölt, kész). */
+  function syncTasks(state, date, day) {
+    var today = U.today();
+    day.items = day.items.filter(function (i) {
+      if (i.kind !== 'task') return true;
+      var t = Sch.task(state, i.refId);
+      if (!t) return false;
+      i.title = t.title; i.catId = taskCat(state, t); i.projectId = t.projectId || null;
+      if (t.mode === 'day') {
+        if (t.date !== date) return false;
+        i.done = !!t.done;
+        var d = t.est || 30;
+        if (i.dur !== d) { i.dur = d; if (i.start != null) i.end = i.start + d; }
+        return true;
+      }
+      return i.done || !t.done;
+    });
+    if (date !== today) return;
+    state.tasks.forEach(function (t) {
+      var has = day.items.filter(function (i) { return i.kind === 'task' && i.refId === t.id; });
+      if (t.mode === 'day') {
+        if (t.date !== date || has.length) return;
+        var it = taskItem(state, t, day.items, t.est || 30, t.time || null, date);
+        it.done = !!t.done;
+        day.items.push(it);
+      } else if (t.mode === 'due' && !t.done && t.due && t.due <= date) {
+        var pending = 0;
+        has.forEach(function (i) { if (!i.done) pending += i.dur; });
+        var rem = Sch.taskRemaining(t) - pending;
+        if (rem <= 0 || has.some(function (i) { return !i.done; })) return;
+        day.items.push(taskItem(state, t, day.items, Math.min(rem, 180), null, date));
+      }
+    });
+  }
+
   Sch.fixDay = function (state, date) {
     if (state.days[date]) return false;
     var items = Sch.projectDay(state, date);
-    var top3 = items.filter(function (i) { return i.important && i.start != null; }).slice(0, 3).map(function (i) { return i.id; });
+    var soon = U.addDays(date, 2);
+    function due(i) { var t = Sch.task(state, i.refId); return (t && t.due) || '9999'; }
+    var placed = items.filter(function (i) { return i.important && i.start != null; });
+    var urgent = placed.filter(function (i) { return i.kind === 'task' && due(i) <= soon; }).sort(function (a, b) { return due(a) < due(b) ? -1 : 1; });
+    var acts = placed.filter(function (i) { return i.kind === 'activity'; });
+    var rest = placed.filter(function (i) { return i.kind === 'task' && due(i) > soon; }).sort(function (a, b) { return due(a) < due(b) ? -1 : 1; });
+    var top3 = urgent.concat(acts, rest).slice(0, 3).map(function (i) { return i.id; });
     state.days[date] = { fixedAt: Date.now(), items: items, top3: top3, closed: false, screenOk: null };
     return true;
   };
@@ -204,9 +354,10 @@
   Sch.resolve = function (state, date, itemId, how) {
     var info = Sch.getDay(state, date);
     var it = info.items.find(function (i) { return i.id === itemId; });
-    if (!it || it.kind !== 'activity') return;
-    var a = Sch.act(state, it.refId);
-    var key = it.refId + '|' + date;
+    if (!it || (it.kind !== 'activity' && it.kind !== 'task')) return;
+    var a = it.kind === 'activity' ? Sch.act(state, it.refId) : null;
+    var tk = it.kind === 'task' ? Sch.task(state, it.refId) : null;
+    var key = (tk ? 'k:' : '') + it.refId + '|' + date;
     if (how === 'later') {
       var others = info.items.filter(function (i) { return i !== it; });
       var after = it.start;
@@ -214,6 +365,13 @@
       var slot = Sch.findSlot(state, others, it.dur, it.catId, after);
       if (info.fixed) { it.start = slot; it.end = slot == null ? null : slot + it.dur; }
       else state.overrides[key] = slot == null ? { unplaced: true } : { time: U.toInputTime(slot) };
+    } else if (tk) {
+      if (info.fixed) {
+        info.day.items = info.day.items.filter(function (i) { return i !== it; });
+        info.day.top3 = (info.day.top3 || []).filter(function (id) { return id !== itemId; });
+      }
+      if (tk.mode === 'day') { tk.date = U.addDays(date, 1); tk.pushes = (tk.pushes || 0) + 1; }
+      else if (!info.fixed) state.overrides[key] = { skip: true };
     } else if (how === 'skip' || how === 'tomorrow') {
       if (info.fixed) {
         info.day.items = info.day.items.filter(function (i) { return i !== it; });
@@ -243,8 +401,47 @@
     return it;
   };
 
-  Sch.tasksFor = function (state, date) { return state.tasks.filter(function (t) { return t.date === date; }); };
-  Sch.overdue = function (state) { var t = U.today(); return state.tasks.filter(function (x) { return !x.done && x.date && x.date < t; }); };
+  Sch.tasksFor = function (state, date) { return state.tasks.filter(function (t) { return t.mode !== 'due' && t.date === date; }); };
+  Sch.overdue = function (state) {
+    var t = U.today();
+    return state.tasks.filter(function (x) { return !x.done && (x.mode === 'due' ? (x.due && x.due < t) : (x.date && x.date < t)); });
+  };
+  Sch.undated = function (state) { return state.tasks.filter(function (x) { return !x.done && (x.mode === 'due' ? !x.due : !x.date); }); };
+
+  /* ---------- Ciklusnaptár ---------- */
+  function cycleCfg(state) {
+    var c = state.settings.cycle || {};
+    var len = Math.max(15, Math.min(60, parseInt(c.len, 10) || 28));
+    return { on: !!c.on, len: len, per: Math.max(1, Math.min(parseInt(c.period, 10) || 5, len - 1)) };
+  }
+  Sch.cycleInfo = function (state, d) {
+    var c = cycleCfg(state);
+    if (!c.on) return null;
+    var starts = (state.periods || []).slice().sort(), s = null;
+    for (var i = starts.length - 1; i >= 0; i--) if (starts[i] <= d) { s = starts[i]; break; }
+    if (!s) return null;
+    var off = U.diffDays(s, d);
+    if (off < c.per) return { type: 'actual', day: off + 1, start: s };
+    if (d < U.today()) return null;
+    var k = Math.floor(off / c.len), o2 = off - k * c.len;
+    if (k >= 1 && o2 < c.per) return { type: 'pred', day: o2 + 1, start: U.addDays(s, k * c.len) };
+    return null;
+  };
+  Sch.cycleNext = function (state) {
+    var c = cycleCfg(state), starts = (state.periods || []).slice().sort();
+    if (!c.on || !starts.length) return null;
+    var last = starts[starts.length - 1], today = U.today(), n = last;
+    while (n <= today) n = U.addDays(n, c.len);
+    return n;
+  };
+  Sch.cycleAvg = function (state) {
+    var s = (state.periods || []).slice().sort();
+    if (s.length < 2) return null;
+    var gaps = [];
+    for (var i = 1; i < s.length; i++) { var g = U.diffDays(s[i - 1], s[i]); if (g >= 15 && g <= 60) gaps.push(g); }
+    if (!gaps.length) return null;
+    return Math.round(gaps.reduce(function (a, b) { return a + b; }, 0) / gaps.length);
+  };
   Sch.releases = function (state, date) { return state.treasures.filter(function (t) { return t.date === date && !t.got; }); };
 
   Sch.dayDots = function (state, date) {
@@ -292,7 +489,7 @@
       var day = state.days[d];
       if (!day) continue;
       day.items.forEach(function (i) {
-        if ((i.kind !== 'activity' && i.kind !== 'event') || !i.catId || i.allDay) return;
+        if ((i.kind !== 'activity' && i.kind !== 'event' && i.kind !== 'task') || !i.catId || i.allDay) return;
         var dur = i.dur || (i.end - i.start) || 0;
         var r = res[i.catId] = res[i.catId] || { planned: 0, done: 0 };
         r.planned += dur;

@@ -3,7 +3,7 @@
   var CA = window.CA = window.CA || {};
   var U = CA.util;
   var DB = 'callan', OS = 'kv', KEY = 'state', LS_KEY = 'callan-state';
-  var SCHEMA = 1;
+  var SCHEMA = 2;
   var S = CA.store = { SCHEMA: SCHEMA };
 
   function openDB() {
@@ -68,15 +68,20 @@
   /* Későbbi verziók itt alakítják át a régi adatokat, sosem dobják el őket. */
   S.migrate = function (s) {
     s.v = s.v || 1;
-    // if (s.v < 2) { ...; s.v = 2; }
-    ['categories', 'projects', 'activities', 'metrics', 'events', 'tasks', 'ideas', 'treasures'].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; });
+    if (s.v < 2) {
+      // 1.1: a feladatoknak ütemezési módja és rászánt ideje van; ciklusnaptár
+      (s.tasks || []).forEach(function (t) { if (!t.mode) t.mode = 'day'; if (t.spent == null) t.spent = 0; });
+      s.v = 2;
+    }
+    ['categories', 'projects', 'activities', 'metrics', 'events', 'tasks', 'ideas', 'treasures', 'periods'].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; });
     ['metricLogs', 'days', 'overrides'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
     s.settings = Object.assign(S.defaultSettings(), s.settings || {});
+    s.settings.cycle = Object.assign({ on: false, len: 28, period: 5 }, s.settings.cycle || {});
     return s;
   };
 
   S.defaultSettings = function () {
-    return { wake: '08:00', workStart: '09:00', workEnd: '18:00', lunch: '13:00', lunchLen: 45, screenCut: '21:00', weighDay: 6, lastBackup: null };
+    return { wake: '08:00', workStart: '09:00', workEnd: '18:00', lunch: '13:00', lunchLen: 45, screenCut: '21:00', weighDay: 6, lastBackup: null, cycle: { on: false, len: 28, period: 5 } };
   };
 
   S.PALETTE = ['#4F6B63', '#846044', '#96604F', '#6F7A5A', '#A07845', '#8C6E78', '#6A7A8C', '#7C6A55', '#5E6E4E', '#9A7A60'];
@@ -137,7 +142,8 @@
       overrides: {},
       days: {},
       ideas: [],
-      treasures: []
+      treasures: [],
+      periods: []
     };
   };
 

@@ -31,6 +31,12 @@
     star: svg(20, '<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z" fill="currentColor"></path>'),
     mic: svg(20, '<rect x="8.5" y="2.8" width="7" height="12" rx="3.5" fill="currentColor" opacity="0.25"></rect><rect x="8.5" y="2.8" width="7" height="12" rx="3.5" ' + S + '></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" ' + S + '></path>'),
     gem: function (s) { return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9Z" fill="#A07845" opacity="0.35"></path><path d="M6 3h12l4 6-10 12L2 9ZM2 9h20" fill="none" stroke="#8A6536" stroke-width="2.2" stroke-linejoin="round"></path></svg>'; },
+    drop: function (sz, filled) {
+      var d = 'M12 3.2c3.4 4.4 6 7.7 6 10.9a6 6 0 0 1-12 0c0-3.2 2.6-6.5 6-10.9Z';
+      return '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" aria-hidden="true">' + (filled
+        ? '<path d="' + d + '" fill="#A76D5E"></path>'
+        : '<path d="' + d + '" fill="#A76D5E" opacity="0.18"></path><path d="' + d + '" fill="none" stroke="#A76D5E" stroke-width="2.4" stroke-linejoin="round"></path>') + '</svg>';
+    },
     moon: svg(18, '<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" fill="currentColor" opacity="0.25"></path><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" ' + S + '></path>'),
     bulb: svg(18, '<path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3Z" ' + F + '></path><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3ZM9.5 19.5h5M10.5 22h3" ' + S + '></path>'),
     chest: svg(18, '<path d="M3.5 11h17v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z" ' + F + '></path><path d="M3.5 11V8.5A5.5 5.5 0 0 1 9 3h6a5.5 5.5 0 0 1 5.5 5.5V11M3.5 11h17v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2ZM10.5 11v3h3v-3" ' + S + '></path>'),
@@ -134,12 +140,21 @@
   function kindLabel(state, it) {
     if (it.kind === 'event') return 'esemény';
     if (it.kind === 'travel') return 'odaút';
+    if (it.kind === 'task') {
+      var t = Sch.task(state, it.refId);
+      if (!t) return 'feladat';
+      return t.mode === 'due' ? 'határidő ' + U.fmtShort(t.due) + ' · ' + hoursTxt(t) : 'feladat';
+    }
     var a = Sch.act(state, it.refId);
     if (!a) return '';
     if (a.sched.type === 'quota') return 'heti kvóta';
     if (a.habit) return 'szokás';
     return Sch.describe(a);
   }
+
+  function hrs(m) { return U.num(m / 60, 1) + ' óra'; }
+  function hoursTxt(t) { return U.num((t.spent || 0) / 60, 1) + ' / ' + hrs(t.est || 0); }
+  V.hoursTxt = hoursTxt;
 
   function timelineRows(state, date, info, isToday) {
     var st = state.settings, we = U.toMin(st.workEnd), now = U.nowMin();
@@ -176,19 +191,20 @@
       '<div class="tl-block' + (it.done ? ' done' : '') + '" style="' + blockStyle(state, it) + '">' +
       '<button type="button" class="tl-main" style="border:0;background:none;padding:0;text-align:left" data-a="open" data-s="item" data-date="' + date + '" data-id="' + it.id + '">' +
       '<span class="tl-title">' + esc(it.title) + '</span><span class="tl-sub" style="color:' + col + '">' + (it.start != null ? U.toHM(it.start) + '–' + U.toHM(it.end) + ' · ' : '') + esc(kindLabel(state, it)) + (it.conflict ? ' · <span class="badge-warn">ütközik</span>' : '') + '</span></button>' +
-      (fixed && it.kind === 'activity' ? '<button type="button" class="tl-star' + (inTop ? ' on' : '') + '" data-a="star" data-date="' + date + '" data-id="' + it.id + '" aria-pressed="' + inTop + '" aria-label="Fő dolog: ' + esc(it.title) + '">' + I.star + '</button>' : '') +
+      (fixed && (it.kind === 'activity' || it.kind === 'task') ? '<button type="button" class="tl-star' + (inTop ? ' on' : '') + '" data-a="star" data-date="' + date + '" data-id="' + it.id + '" aria-pressed="' + inTop + '" aria-label="Fő dolog: ' + esc(it.title) + '">' + I.star + '</button>' : '') +
       (fixed ? check(it.done, col, 'data-a="done" data-date="' + date + '" data-id="' + it.id + '"', 'Kész: ' + it.title, true) : '') +
       '</div></div>';
     if (it.conflict) h += conflictCard(state, date, it);
     return h;
   }
   function conflictCard(state, date, it) {
-    var a = Sch.act(state, it.refId);
-    var canMove = a && a.sched.type !== 'daily' && a.sched.type !== 'weekdays';
+    var a = it.kind === 'activity' ? Sch.act(state, it.refId) : null, tk = it.kind === 'task' ? Sch.task(state, it.refId) : null;
+    var canMove = !!tk || (a && a.sched.type !== 'daily' && a.sched.type !== 'weekdays');
+    var moveTxt = tk && tk.mode === 'due' ? 'Másik napra' : 'Másnapra';
     return '<div class="conflict-card"><p>' + esc(it.title) + ' ütközik ezzel: ' + esc(it.conflictWith || 'egy másik tétel') + '.</p><div class="chips">' +
       '<button type="button" class="btn-white" data-a="resolve" data-date="' + date + '" data-id="' + it.id + '" data-how="later">Később aznap</button>' +
-      (canMove ? '<button type="button" class="btn-white" data-a="resolve" data-date="' + date + '" data-id="' + it.id + '" data-how="tomorrow">Másnapra</button>' : '') +
-      '<button type="button" class="btn-white" style="color:#8A4B3A" data-a="resolve" data-date="' + date + '" data-id="' + it.id + '" data-how="skip">Kimarad</button></div></div>';
+      (canMove ? '<button type="button" class="btn-white" data-a="resolve" data-date="' + date + '" data-id="' + it.id + '" data-how="tomorrow">' + moveTxt + '</button>' : '') +
+      (tk ? '' : '<button type="button" class="btn-white" style="color:#8A4B3A" data-a="resolve" data-date="' + date + '" data-id="' + it.id + '" data-how="skip">Kimarad</button>') + '</div></div>';
   }
 
   function metricRows(state, date, list) {
@@ -235,7 +251,8 @@
     var od = Sch.overdue(state);
     if (od.length) {
       h += '<div class="sec"><div class="label">Korábbról maradt</div><div class="card pad-s list">' + od.map(function (x) {
-        return '<div style="padding:14px 0;display:flex;flex-direction:column;gap:10px"><div class="between"><div class="grow" style="font-size:15px;font-weight:600">' + esc(x.title) + '</div><div class="tiny muted">' + U.relDay(x.date) + '</div></div>' +
+        return '<div style="padding:14px 0;display:flex;flex-direction:column;gap:10px"><div class="between"><div class="grow" style="font-size:15px;font-weight:600">' + esc(x.title) + '</div><div class="tiny muted">' + (x.mode === 'due' ? 'határidő: ' + U.relDay(x.due) : U.relDay(x.date)) + '</div></div>' +
+          (x.mode === 'due' && x.est ? '<p class="help">Még ' + hrs(Sch.taskRemaining(x)) + ' van hátra belőle. A „Mára” a mai napba tesz egy blokkot, a „Holnapra” holnapra tolja a határidőt.</p>' : '') +
           (x.pushes >= 2 ? '<p class="help">Ezt már ' + (x.pushes + 1) + '. alkalommal tolnád. Tényleg kell még?</p>' : '') +
           '<div class="chips"><button type="button" class="btn-white" style="background:var(--field)" data-a="taskMove" data-id="' + x.id + '" data-to="today">Mára</button><button type="button" class="btn-white" style="background:var(--field)" data-a="taskMove" data-id="' + x.id + '" data-to="tomorrow">Holnapra</button><button type="button" class="btn-white" style="background:var(--field)" data-a="task" data-id="' + x.id + '">Kész</button><button type="button" class="btn-white" style="background:var(--field);color:#8A4B3A" data-a="taskMove" data-id="' + x.id + '" data-to="del">Törlés</button></div></div>';
       }).join('') + '</div></div>';
@@ -257,19 +274,8 @@
     });
     h += '</div>';
 
-    // Mai feladatok
-    var tasks = Sch.tasksFor(state, t);
-    h += '<div class="sec"><div class="between"><div class="label">Mai feladatok</div><button type="button" class="btn-link" data-a="open" data-s="entry" data-mode="task" data-date="' + t + '">+ Feladat</button></div>';
-    if (tasks.length) {
-      h += '<div class="card pad-s list">' + tasks.map(function (x) {
-        var p = Sch.proj(state, x.projectId), col = Sch.catColor(state, x.catId || (p && p.catId));
-        return '<div class="drow">' + check(x.done, col, 'data-a="task" data-id="' + x.id + '"', 'Kész: ' + x.title, true) + '<button type="button" class="drow-title" style="border:0;background:none;text-align:left;padding:0;' + (x.done ? 'color:var(--faint);text-decoration:line-through' : '') + '" data-a="open" data-s="entry" data-edit="task" data-id="' + x.id + '">' + esc(x.title) + '</button><div class="drow-tag">' + esc(p ? p.name : '') + '</div></div>';
-      }).join('') + '</div>';
-    }
-    h += '</div>';
-
     // Idővonal
-    h += '<div class="sec"><div class="label">A napod</div><div class="tl">';
+    h += '<div class="sec"><div class="between"><div class="label">A napod</div><button type="button" class="btn-link" data-a="open" data-s="entry" data-mode="task" data-date="' + t + '">+ Feladat</button></div><div class="tl">';
     info.items.filter(function (i) { return i.allDay; }).forEach(function (it) { h += itemRow(state, t, info, it); });
     h += timelineRows(state, t, info, true);
     var unplaced = info.items.filter(function (i) { return !i.allDay && i.start == null; });
@@ -321,6 +327,18 @@
     }
     return Sch.dayDots(state, d);
   }
+  function cycleRow(state, d) {
+    var c = state.settings.cycle;
+    if (!c || !c.on) return '';
+    var ci = Sch.cycleInfo(state, d), isStart = (state.periods || []).indexOf(d) >= 0;
+    var txt = ci ? (ci.type === 'actual' ? 'Menstruáció · ' + ci.day + '. nap' : 'Várható menstruáció · ' + ci.day + '. nap') : '';
+    var btn = isStart
+      ? '<button type="button" class="btn-white" data-a="periodDel" data-d="' + d + '">Kezdet törlése</button>'
+      : (d <= U.today() ? '<button type="button" class="btn-white" data-a="periodAdd" data-d="' + d + '">' + (d === U.today() ? 'Ma kezdődött' : 'Ezen a napon kezdődött') + '</button>' : '');
+    if (!txt && !btn) return '';
+    return '<div class="cycle-row">' + I.drop(20, !ci || ci.type === 'actual') + '<div class="grow small" style="color:#7E4E42">' + (txt || 'Menstruáció kezdete') + '</div>' + btn + '</div>';
+  }
+
   V.cal = function (state, ui) {
     var today = U.today();
     var month = ui.cal.month || today.slice(0, 7), sel = ui.cal.sel || today;
@@ -337,21 +355,23 @@
     h += '<div class="card cal"><div class="cal-grid">' + U.DAYS_SHORT.map(function (d) { return '<div class="cal-wd">' + d + '</div>'; }).join('') + '</div><div class="cal-grid">';
     for (var i = 0; i < weeks * 7; i++) {
       var d = U.addDays(start, i), out = d.slice(0, 7) !== month;
-      var dots = out ? [] : calDots(state, d), gem = !out && Sch.releases(state, d).length;
+      var dots = out ? [] : calDots(state, d), gem = !out && Sch.releases(state, d).length, cyc = out ? null : Sch.cycleInfo(state, d);
       h += '<button type="button" class="cal-day' + (out ? ' out' : '') + (d === today ? ' today' : '') + (d === sel ? ' sel' : '') + '" data-a="calSel" data-d="' + d + '" aria-label="' + U.fmtLong(d) + '"' + (d === sel ? ' aria-current="date"' : '') + '>' +
         '<span class="cal-num">' + U.parse(d).getDate() + '</span><span class="cal-dots">' + dots.map(function (c) { return '<i style="background:' + Sch.catColor(state, c) + '"></i>'; }).join('') + '</span>' +
-        (gem ? '<span class="cal-gem">' + I.gem(11) + '</span>' : '') + '</button>';
+        (gem ? '<span class="cal-gem">' + I.gem(11) + '</span>' : '') +
+        (cyc ? '<span class="cal-drop">' + I.drop(11, cyc.type === 'actual') + '</span>' : '') + '</button>';
     }
     h += '</div></div>';
-    h += '<div class="legend">' + state.categories.map(function (c) { return '<span><i class="dot" style="background:' + c.color + '"></i>' + esc(c.name) + '</span>'; }).join('') + '<span>' + I.gem(12) + 'Megjelenés</span></div>';
+    h += '<div class="legend">' + state.categories.map(function (c) { return '<span><i class="dot" style="background:' + c.color + '"></i>' + esc(c.name) + '</span>'; }).join('') + '<span>' + I.gem(12) + 'Megjelenés</span>' + (state.settings.cycle && state.settings.cycle.on ? '<span>' + I.drop(12, true) + 'Menstruáció</span><span>' + I.drop(12, false) + 'Várható</span>' : '') + '</div>';
 
     // Kiválasztott nap
     var info = Sch.getDay(state, sel);
     var unused = sel < today && !state.days[sel];
-    var items = info.items.filter(function (i) { return i.kind === 'activity' || i.kind === 'event'; });
+    var items = info.items.filter(function (i) { return i.kind === 'activity' || i.kind === 'event' || i.kind === 'task'; });
     if (unused) items = items.filter(function (i) { return i.kind === 'event'; });
-    var tasks = Sch.tasksFor(state, sel), rel = Sch.releases(state, sel);
+    var tasks = unused ? Sch.tasksFor(state, sel) : [], rel = Sch.releases(state, sel);
     h += '<div class="sec"><div class="between"><h2 class="h2">' + U.fmtLong(sel) + '</h2><div class="small muted">' + (items.length + tasks.length) + ' tétel</div></div>';
+    h += cycleRow(state, sel);
     rel.forEach(function (r) {
       h += '<button type="button" class="release" style="border:0;text-align:left" data-a="open" data-s="treasure" data-id="' + r.id + '"><div style="width:38px;height:38px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center">' + I.gem(20) + '</div><div><div class="tiny" style="color:#7A5B33">Megjelenik a Kincsesládából</div><div style="font-size:15px;font-weight:600">' + esc(r.title) + '</div></div></button>';
     });
@@ -434,7 +454,7 @@
       '<label for="q-title" class="hidden-label">Cím</label><input id="q-title" class="field title" placeholder="Cím" data-bindui="q.title" value="' + esc(q.title) + '">' +
       '<label for="q-body" class="hidden-label">Ötlet szövege</label><textarea id="q-body" class="field" rows="3" placeholder="Mi jutott eszedbe? Írd vagy mondd." data-bindui="q.body">' + esc(q.body) + '</textarea>' +
       '<div class="between"><label for="q-proj" class="hidden-label">Projekt</label><select id="q-proj" class="field" style="width:auto;max-width:55%;font-weight:600;color:#7B4E41;background-color:rgba(150,96,79,.12)" data-bindui="q.proj"><option value="">Besorolatlan</option>' +
-      wps.map(function (p) { return '<option value="' + p.id + '"' + (q.proj === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '</select>' +
+      wps.map(function (p) { return '<option value="' + p.id + '"' + (q.proj === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '<option value="__new">+ Új kategória…</option></select>' +
       '<div class="row" style="gap:8px"><button type="button" class="icon-btn mic' + (ui.listening ? ' on' : '') + '" style="border-radius:50%;background:rgba(150,96,79,.12);color:#96604F;box-shadow:none" data-a="mic" aria-pressed="' + !!ui.listening + '" aria-label="Diktálás">' + I.mic + '</button><button type="button" class="btn" style="height:44px;border-radius:14px" data-a="saveIdea">Mentés</button></div></div></div>';
     var f = ui.ideaF;
     var counts = { all: state.ideas.length, none: state.ideas.filter(function (i) { return !i.projectId; }).length };
@@ -618,10 +638,21 @@
       return '<div style="display:flex;flex-direction:column;gap:10px;padding-bottom:6px"><div class="row"><span class="dot" style="background:' + c.color + ';width:14px;height:14px"></span><label for="cat-' + c.id + '" class="hidden-label">Kategória neve</label><input id="cat-' + c.id + '" class="field" value="' + esc(c.name) + '" data-change="catName" data-id="' + c.id + '"></div>' +
         '<div class="chips" style="gap:6px">' + CA.store.PALETTE.map(function (col) { return '<button type="button" aria-label="Szín ' + col + '" data-a="catColor" data-id="' + c.id + '" data-c="' + col + '" style="width:28px;height:28px;border-radius:50%;border:' + (col === c.color ? '3px solid var(--ink)' : '0') + ';background:' + col + '"></button>'; }).join('') + '</div></div>';
     }).join('') + '<button type="button" class="btn-soft" style="align-self:flex-start" data-a="open" data-s="newcat">' + I.plus + 'Új kategória</button></div>';
+    var cy = st.cycle || {}, lastStart = (state.periods || []).slice().sort().pop() || '', avg = Sch.cycleAvg(state), nxt = Sch.cycleNext(state);
+    h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="frow"><div><div class="label">Ciklusnaptár</div><div class="small muted" style="margin-top:4px">Csak a Naptárban látszik, cseppel jelölve</div></div>' + sw(!!cy.on, 'data-a="cycleToggle"', 'Ciklusnaptár') + '</div>';
+    if (cy.on) {
+      h += '<div class="frow"><label for="cy-last">Utolsó menstruáció kezdete</label><input id="cy-last" type="date" class="field" style="width:170px" value="' + esc(lastStart) + '" data-change="periodLast"></div>' +
+        '<div class="frow"><label for="cy-len">Ciklus hossza (nap)</label><input id="cy-len" class="field sm" inputmode="numeric" value="' + esc(cy.len) + '" data-change="cycle" data-k="len"></div>' +
+        '<div class="frow"><label for="cy-per">Menstruáció hossza (nap)</label><input id="cy-per" class="field sm" inputmode="numeric" value="' + esc(cy.period) + '" data-change="cycle" data-k="period"></div>' +
+        (avg ? '<div class="frow"><span class="small muted">A rögzített ciklusaid átlaga: ' + avg + ' nap</span>' + (avg !== +cy.len ? '<button type="button" class="btn-link" data-a="cycleUseAvg" data-v="' + avg + '">Ezt használjuk</button>' : '') + '</div>' : '') +
+        (nxt ? '<p class="help">Következő várható kezdet: ' + U.fmtLong(nxt) + '.</p>' : '<p class="help">Add meg az utolsó kezdet dátumát, és onnan számolom a következőket.</p>') +
+        '<p class="help">Ha elkezdődik, a Naptárban az adott napra koppintva rögzítheted; a becslés onnantól ehhez igazodik. Ez a megadott hosszakból számolt becslés, nem orvosi előrejelzés.</p>';
+    }
+    h += '</div>';
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Biztonsági mentés</div><p class="help" style="font-size:14px">Az adataid ezen a telefonon vannak. A mentés egy fájl, amit a megosztás menüből a Google Drive-ra küldhetsz; telefoncserénél ebből állítod vissza.</p>' +
       '<p class="help">' + (st.lastBackup ? 'Utolsó mentés: ' + U.fmtDate(st.lastBackup) : 'Még nem készült mentés.') + ' · ' + (ui.persisted ? 'A tárolás tartós.' : 'A böngésző szükség esetén törölheti az adatokat — a rendszeres mentés ezért fontos.') + '</p>' +
       '<button type="button" class="btn" data-a="backup">Mentés most</button>' +
-      '<label class="btn" style="background:var(--field);color:var(--ink)" for="imp">Visszaállítás fájlból</label><input id="imp" type="file" accept="application/json,.json" class="hidden-label" data-change="import"></div>';
+      '<label class="btn" style="background:var(--field);color:var(--ink)" for="imp">Visszaállítás fájlból</label><input id="imp" type="file" accept=".txt,.json,text/plain,application/json" class="hidden-label" data-change="import"></div>';
     h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="label">Az appról</div><p class="help" style="font-size:14px">Callan · ' + CA.VERSION + '</p><p class="help">Időzített értesítések egy későbbi verzióban jönnek. Addig Callan az app megnyitásakor szól.</p>' +
       '<button type="button" class="btn-danger" style="align-self:flex-start" data-a="resetAll">Minden adat törlése</button></div>';
     return h;
@@ -643,7 +674,7 @@
       (it.conflict ? '<p class="help" style="color:#8A4B3A">Ütközik ezzel: ' + esc(it.conflictWith) + '.</p>' : '') + '</div>';
     if (info.fixed) {
       h += '<button type="button" class="btn block" style="background:' + (it.done ? 'var(--field);color:var(--ink)' : col) + '" data-a="done" data-date="' + s.date + '" data-id="' + it.id + '">' + (it.done ? 'Mégsem kész' : 'Kész') + '</button>';
-      if (it.kind === 'activity') h += '<div class="card frow"><div><div style="font-weight:600;font-size:15px">A mai három dolog egyike</div><div class="small muted">Legfeljebb három lehet</div></div>' + sw(inTop, 'data-a="star" data-date="' + s.date + '" data-id="' + it.id + '"', 'Fő dolog') + '</div>';
+      if (it.kind === 'activity' || it.kind === 'task') h += '<div class="card frow"><div><div style="font-weight:600;font-size:15px">A mai három dolog egyike</div><div class="small muted">Legfeljebb három lehet</div></div>' + sw(inTop, 'data-a="star" data-date="' + s.date + '" data-id="' + it.id + '"', 'Fő dolog') + '</div>';
     }
     if (it.kind === 'activity') {
       h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="label">Áthelyezés ezen a napon</div><div class="frow"><label for="it-time">Új kezdés</label><input id="it-time" type="time" class="field sm" value="' + (it.start != null ? U.toInputTime(it.start) : '') + '"></div>' +
@@ -653,9 +684,65 @@
         '<button type="button" class="btn-white" style="color:#8A4B3A" data-a="resolve" data-date="' + s.date + '" data-id="' + it.id + '" data-how="skip">Aznap kimarad</button>' +
         (a ? '<button type="button" class="btn-white" data-a="open" data-s="proj" data-id="' + a.projectId + '">Projekt megnyitása</button>' : '') + '</div>';
     }
+    if (it.kind === 'task') {
+      var tk = Sch.task(state, it.refId);
+      if (tk && tk.mode === 'due') h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="between"><span class="label">Haladás</span><span class="small muted">' + hoursTxt(tk) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round((tk.spent || 0) / (tk.est || 1) * 100)) + '%;background:' + col + '"></i></div><p class="help">Ha ezt a blokkot kipipálod, az ideje levonódik, a maradék pedig újraoszlik a határidőig (' + U.fmtLong(tk.due) + ').</p></div>';
+      h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="label">Áthelyezés ezen a napon</div><div class="frow"><label for="it-time">Új kezdés</label><input id="it-time" type="time" class="field sm" value="' + (it.start != null ? U.toInputTime(it.start) : '') + '"></div>' +
+        '<button type="button" class="btn-soft" style="align-self:flex-start" data-a="itemTime" data-date="' + s.date + '" data-id="' + it.id + '">Áthelyezés</button></div>';
+      h += '<div class="chips"><button type="button" class="btn-white" data-a="resolve" data-date="' + s.date + '" data-id="' + it.id + '" data-how="tomorrow">' + (tk && tk.mode === 'due' ? 'Ma nem, osszuk el máskorra' : 'Másnapra') + '</button>' +
+        '<button type="button" class="btn-white" data-a="open" data-s="entry" data-edit="task" data-id="' + it.refId + '">Feladat szerkesztése</button>' +
+        (tk && tk.projectId ? '<button type="button" class="btn-white" data-a="open" data-s="proj" data-id="' + tk.projectId + '">Projekt megnyitása</button>' : '') + '</div>';
+    }
     if (it.kind === 'event') h += '<button type="button" class="btn-soft" style="align-self:flex-start" data-a="open" data-s="entry" data-edit="event" data-id="' + it.refId + '">Esemény szerkesztése</button>';
     return h;
   };
+
+  var EST_CHIPS = [['0,25', '15 perc'], ['0,5', '30 perc'], ['1', '1 óra'], ['2', '2 óra'], ['4', '4 óra']];
+  function taskFields(state, d) {
+    var due = d.tmode === 'due';
+    var h = '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Ütemezés</div>' +
+      seg([['day', 'Adott napon'], ['due', 'Határidőig']], d.tmode, function (v) { return 'data-a="d" data-k="tmode" data-v="' + v + '"'; });
+    if (!due) {
+      h += '<p class="help">Egy konkrét napon intézed el. Időpont nélkül szabad helyet keresek neki az idővonalon.</p>' +
+        '<label for="e-date" class="label">Melyik napon?</label><input id="e-date" type="date" class="field" value="' + esc(d.date) + '" data-bind="date">' +
+        '<div class="frow"><label for="e-time">Kezdés (nem kötelező)</label><input id="e-time" type="time" class="field sm" value="' + esc(d.time) + '" data-bind="time"></div>' +
+        '<p class="help">Nap nélkül a vasárnapi heti tervezésnél osztod be.</p>';
+    } else {
+      h += '<p class="help">Hosszabb munka: a rászánt időt felosztom a határidőig hátralévő napokra, és beteszem az idővonalra.</p>' +
+        '<label for="e-due" class="label">Határidő</label><input id="e-due" type="date" class="field" value="' + esc(d.due) + '" data-bind="due" data-rerender="1">';
+    }
+    h += '<div class="label">Rászánt idő</div><div class="chips">' + EST_CHIPS.map(function (c) {
+      var on = d.estH === c[0];
+      return '<button type="button" class="chip' + (on ? ' dark' : '') + '" aria-pressed="' + on + '" data-a="d" data-k="estH" data-v="' + c[0] + '">' + c[1] + '</button>';
+    }).join('') + '</div>' +
+      '<div class="frow"><label for="e-est">Vagy pontosan (óra)</label><input id="e-est" class="field sm" inputmode="decimal" value="' + esc(d.estH) + '" placeholder="' + (due ? 'pl. 10' : '0,5') + '" data-bind="estH" data-rerender="1"></div>';
+    if (!due) h += '<p class="help">Ha üresen hagyod, fél órát foglalok neki.</p>';
+    if (due) {
+      h += '<div class="label">Egy alkalom legfeljebb</div><div class="chips">' + [[30, '30 perc'], [60, '1 óra'], [90, '1,5 óra'], [120, '2 óra']].map(function (c) {
+        var on = +d.chunk === c[0];
+        return '<button type="button" class="chip' + (on ? ' dark' : '') + '" aria-pressed="' + on + '" data-a="d" data-k="chunk" data-v="' + c[0] + '">' + c[1] + '</button>';
+      }).join('') + '</div>';
+      if (d.spent) h += '<p class="help">Eddig elvégezve: ' + hrs(d.spent) + '.</p>';
+    }
+    h += '</div>';
+    if (due) {
+      var est = estMinutes(d.estH);
+      if (d.due && est) {
+        var temp = { id: d.editId || '__preview', mode: 'due', due: d.due, est: est, chunk: +d.chunk || 60, spent: d.spent || 0, catId: d.catId, projectId: d.projectId || null };
+        var plan = Sch.taskPlan(state, temp), days = Object.keys(plan).sort();
+        var rem = est - (d.spent || 0);
+        if (rem <= 0) h += say('buszke', 'Ezt már ledolgoztad.');
+        else if (!days.length) h += say('nyugodt', 'Ez a határidő már elmúlt. Válassz egy későbbi napot.');
+        else {
+          var max = Math.max.apply(null, days.map(function (k) { return plan[k]; }));
+          h += say(max > 180 ? 'nyugodt' : 'beszel', hrs(rem) + ' ' + U.untilDay(d.due) + ': ' + (days.length === 1 ? 'egy alkalomra' : days.length + ' napra') + ' osztom' + (days.length > 1 ? ', legfeljebb ' + hrs(max) + ' egy nap' : '') + '. Az első: ' + U.relDay(days[0]) + '.' + (max > 180 ? ' Ez szoros lesz — érdemes későbbi határidőt vagy kevesebb időt adni.' : ''));
+        }
+      }
+    }
+    return h;
+  }
+  function estMinutes(v) { var n = U.parseNum(v); return n && n > 0 ? Math.max(5, Math.round(n * 60 / 5) * 5) : null; }
+  V.estMinutes = estMinutes;
 
   SHEETS.entry = function (state, ui, s) {
     var d = s.draft, isEv = d.mode === 'event';
@@ -667,9 +754,7 @@
         '<div class="frow"><span class="flabel">Egész napos</span>' + sw(d.allDay, 'data-a="dToggle" data-k="allDay"', 'Egész napos') + '</div>' +
         (d.allDay ? '' : '<div class="frow"><label for="e-start">Kezdés</label><input id="e-start" type="time" class="field sm" value="' + esc(d.start) + '" data-bind="start" data-rerender="1"></div><div class="frow"><label for="e-end">Vége</label><input id="e-end" type="time" class="field sm" value="' + esc(d.end) + '" data-bind="end" data-rerender="1"></div>' +
           '<div class="frow"><label for="e-travel">Odaút előtte (perc)</label><input id="e-travel" class="field sm" inputmode="numeric" value="' + esc(d.travel || '') + '" placeholder="0" data-bind="travel" data-rerender="1"></div><p class="help">Az idővonalon a kezdés előtt ezt az időt is lefoglalja.</p>') + '</div>';
-    } else {
-      h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="e-date" class="label">Melyik napra?</label><input id="e-date" type="date" class="field" value="' + esc(d.date) + '" data-bind="date"><p class="help">Ha üresen hagyod, a vasárnapi heti tervezésnél osztod be.</p></div>';
-    }
+    } else h += taskFields(state, d);
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Kategória</div>' + catChips(state, d.catId, function (id) { return 'data-a="d" data-k="catId" data-v="' + id + '"'; }, true) +
       '<label for="e-proj" class="label">Projekt</label><select id="e-proj" class="field" data-bind="projectId" data-rerender="1">' + projOptions(state, d.projectId) + '</select><p class="help">Nem kötelező. Ha egy projekthez rendeled, annak a listájában is megjelenik.</p></div>';
     if (isEv) h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><label for="e-note" class="label">Jegyzet</label><textarea id="e-note" class="field" rows="2" placeholder="pl. vinni: aláírt nyomtatvány" data-bind="note">' + esc(d.note) + '</textarea></div>';
@@ -788,12 +873,19 @@
     }
     // Feladatok
     var open = tasks.filter(function (x) { return !x.done; }), done = tasks.filter(function (x) { return x.done; });
-    h += '<div class="sec"><div class="label">' + (p.goal && p.goal.type === 'milestones' ? 'Lépések' : 'Feladatok') + '</div><div class="card" style="display:flex;flex-direction:column;gap:6px">' +
-      open.map(function (x) { return '<div class="drow" style="padding:10px 0">' + check(false, col, 'data-a="task" data-id="' + x.id + '"', 'Kész: ' + x.title, true) + '<button type="button" class="drow-title" style="border:0;background:none;text-align:left;padding:0" data-a="open" data-s="entry" data-edit="task" data-id="' + x.id + '">' + esc(x.title) + '</button><span class="drow-tag">' + (x.date ? U.relDay(x.date) : 'nincs napja') + '</span></div>'; }).join('') +
+    function taskMeta(x) {
+      if (x.mode === 'due') return x.due ? 'határidő ' + U.fmtShort(x.due) + (x.est ? ' · ' + hoursTxt(x) : '') : 'nincs határideje';
+      return (x.date ? U.relDay(x.date) : 'nincs napja') + (x.est ? ' · ' + U.dur(x.est) : '');
+    }
+    h += '<div class="sec"><div class="between"><div class="label">' + (p.goal && p.goal.type === 'milestones' ? 'Lépések' : 'Feladatok') + '</div><button type="button" class="btn-link" data-a="open" data-s="entry" data-mode="task" data-proj="' + p.id + '">+ Feladat</button></div><div class="card" style="display:flex;flex-direction:column;gap:6px">' +
+      (open.length ? '' : '<p class="help">Nincs nyitott feladat.</p>') +
+      open.map(function (x) {
+        var bar = x.mode === 'due' && x.est ? '<div class="bar" style="margin-top:6px"><i style="width:' + Math.min(100, Math.round((x.spent || 0) / x.est * 100)) + '%;background:' + col + '"></i></div>' : '';
+        return '<div class="drow" style="padding:10px 0;align-items:flex-start">' + check(false, col, 'data-a="task" data-id="' + x.id + '"', 'Kész: ' + x.title, true) + '<button type="button" class="grow" style="border:0;background:none;text-align:left;padding:2px 0 0;display:flex;flex-direction:column;gap:3px" data-a="open" data-s="entry" data-edit="task" data-id="' + x.id + '"><span style="font-size:14.5px;font-weight:500">' + esc(x.title) + '</span><span class="small muted">' + taskMeta(x) + '</span>' + bar + '</button></div>';
+      }).join('') +
       (ui.showDone ? done.map(function (x) { return '<div class="drow" style="padding:10px 0">' + check(true, col, 'data-a="task" data-id="' + x.id + '"', 'Visszavonás: ' + x.title, true) + '<span class="drow-title" style="color:var(--faint);text-decoration:line-through">' + esc(x.title) + '</span></div>'; }).join('') : '') +
       (done.length ? '<button type="button" class="btn-link" style="align-self:flex-start;color:var(--muted)" data-a="toggleDone">' + (ui.showDone ? 'Kész tételek elrejtése' : 'Kész · ' + done.length) + '</button>' : '') +
-      '<div class="row" style="margin-top:6px"><label for="nt-title" class="hidden-label">Új feladat</label><input id="nt-title" class="field" placeholder="Új ' + (p.goal && p.goal.type === 'milestones' ? 'lépés' : 'feladat') + '"><label for="nt-date" class="hidden-label">Nap</label><input id="nt-date" type="date" class="field" style="width:150px"></div>' +
-      '<button type="button" class="btn-soft" style="align-self:flex-start" data-a="addTask" data-id="' + p.id + '">' + I.plus + 'Hozzáadás</button></div></div>';
+      '</div></div>';
     // Események
     var evs = state.events.filter(function (e) { return e.projectId === p.id; }).sort(function (a, b) { return (a.date + (a.start || '')) < (b.date + (b.start || '')) ? -1 : 1; });
     var up = evs.filter(function (e) { return e.date >= t; }), past = evs.filter(function (e) { return e.date < t; }).reverse();
@@ -815,8 +907,15 @@
     var d = s.draft;
     return sheetHead('Ötlet') + '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="i-title" class="hidden-label">Cím</label><input id="i-title" class="field title" value="' + esc(d.title) + '" data-bind="title" placeholder="Cím">' +
       '<label for="i-body" class="hidden-label">Szöveg</label><textarea id="i-body" class="field" rows="8" data-bind="body">' + esc(d.body) + '</textarea>' +
-      '<label for="i-proj" class="label">Projekt</label><select id="i-proj" class="field" data-bind="projectId"><option value="">Besorolatlan</option>' + writeProjects(state).map(function (p) { return '<option value="' + p.id + '"' + (p.id === d.projectId ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '</select></div>' +
+      '<label for="i-proj" class="label">Projekt</label><select id="i-proj" class="field" data-bind="projectId"><option value="">Besorolatlan</option>' + writeProjects(state).map(function (p) { return '<option value="' + p.id + '"' + (p.id === d.projectId ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '<option value="__new">+ Új kategória…</option></select></div>' +
       '<button type="button" class="btn block" data-a="saveIdeaEdit">Mentés</button><button type="button" class="btn-danger" style="align-self:center" data-a="delIdea">Ötlet törlése</button>';
+  };
+
+  SHEETS.ideaCat = function (state, ui, s) {
+    var d = s.draft;
+    return sheetHead('Új ötlet-kategória') + '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="ic-name" class="label">Név</label><input id="ic-name" class="field title" placeholder="pl. Novellák, Fantasy-sorozat" value="' + esc(d.name) + '" data-bind="name">' +
+      '<p class="help">Az Írói munka alá kerül gyűjtőként, így a Projektekben is megtalálod, és események, feladatok is tartozhatnak hozzá.</p></div>' +
+      '<button type="button" class="btn block" data-a="saveIdeaCat">Kategória mentése</button>';
   };
 
   SHEETS.treasure = function (state, ui, s) {
@@ -845,19 +944,19 @@
     var t = U.today(), info = Sch.getDay(state, t), day = state.days[t] || {};
     var h = sheetHead('Esti zárás');
     h += say('almos', 'Mára elég volt. Egy perc, és lezárjuk.');
-    var open = info.items.filter(function (i) { return (i.kind === 'activity') && !i.done; });
-    var tasks = Sch.tasksFor(state, t).filter(function (x) { return !x.done; });
+    var open = info.items.filter(function (i) { return (i.kind === 'activity' || i.kind === 'task') && !i.done; });
+    var tasks = Sch.tasksFor(state, t).filter(function (x) { return !x.done && !info.items.some(function (i) { return i.refId === x.id; }); });
     if (open.length || tasks.length) {
       h += '<div class="sec"><div class="label">Ami még nyitva van</div><div class="card pad-s list">' + open.map(function (it) {
         return '<div class="drow">' + check(false, Sch.catColor(state, it.catId), 'data-a="done" data-date="' + t + '" data-id="' + it.id + '"', 'Kész: ' + it.title, true) + '<span class="drow-title">' + esc(it.title) + '</span><span class="drow-tag">' + (it.start != null ? U.toHM(it.start) : '') + '</span></div>';
       }).join('') + tasks.map(function (x) {
         return '<div class="drow">' + check(false, Sch.catColor(state, x.catId || (Sch.proj(state, x.projectId) || {}).catId), 'data-a="task" data-id="' + x.id + '"', 'Kész: ' + x.title, true) + '<span class="drow-title">' + esc(x.title) + '</span><span class="drow-tag">feladat</span></div>';
-      }).join('') + '</div><p class="help">Ami nyitva marad, az ma kimaradt — a feladatok holnap reggel újra előkerülnek.</p></div>';
+      }).join('') + '</div><p class="help">Ami nyitva marad, az ma kimaradt. A napi feladatok holnap reggel újra előkerülnek, a határidősök maradéka újraoszlik.</p></div>';
     }
     var ms = todaysMetrics(state, t, info.items);
     if (ms.length) h += '<div class="sec"><div class="label">Mai számok</div><div class="card pad-s list">' + metricRows(state, t, ms) + '</div></div>';
     h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><div style="font-weight:600;font-size:15px">Betartottad a képernyő-határt (' + state.settings.screenCut + ')?</div><div class="chips"><button type="button" class="chip ' + (day.screenOk === true ? 'dark' : '') + '" data-a="screenOk" data-v="1">Igen</button><button type="button" class="chip ' + (day.screenOk === false ? 'dark' : '') + '" data-a="screenOk" data-v="0">Most nem</button></div></div>';
-    var tm = U.addDays(t, 1), ti = Sch.getDay(state, tm).items.filter(function (i) { return (i.kind === 'activity' || i.kind === 'event') && i.start != null; }).slice(0, 8);
+    var tm = U.addDays(t, 1), ti = Sch.getDay(state, tm).items.filter(function (i) { return (i.kind === 'activity' || i.kind === 'event' || i.kind === 'task') && i.start != null; }).slice(0, 10);
     h += '<div class="sec"><div class="between"><div class="label">Holnap</div><button type="button" class="btn-link" data-a="calTomorrow">Szerkesztés</button></div><div class="card pad-s list">' + (ti.length ? ti.map(function (it) {
       return '<div class="drow"><span class="drow-time">' + U.toHM(it.start) + '</span><span class="dot" style="background:' + Sch.catColor(state, it.catId) + '"></span><span class="drow-title">' + esc(it.title) + '</span></div>';
     }).join('') : '<div class="drow muted small">Holnapra nincs semmi betervezve.</div>') + '</div></div>';
@@ -867,7 +966,7 @@
 
   SHEETS.plan = function (state, ui) {
     var t = U.today(), next = U.addDays(U.weekStart(t), 7);
-    var undated = state.tasks.filter(function (x) { return !x.done && !x.date; });
+    var undated = Sch.undated(state).filter(function (x) { return x.mode !== 'due'; });
     var h = sheetHead('Heti tervezés') + say('beszel', 'Nézzük a jövő hetet. A dátum nélküli feladatokat itt osztod be egy-egy napra.');
     if (!undated.length) h += '<div class="card"><div class="empty">Nincs beosztatlan feladat. Minden a helyén van.</div></div>';
     undated.forEach(function (x) {

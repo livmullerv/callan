@@ -313,7 +313,7 @@
         if (t.date !== date) return false;
         i.done = !!t.done;
         var d = t.est || 30;
-        if (i.dur !== d) { i.dur = d; if (i.start != null) i.end = i.start + d; }
+        if (!i.fixedDur && i.dur !== d) { i.dur = d; if (i.start != null) i.end = i.start + d; }
         return true;
       }
       return i.done || !t.done;
@@ -399,6 +399,72 @@
     day.items.push(it);
     Sch.markConflicts(day.items); Sch.sortItems(day.items);
     return it;
+  };
+
+  /* „Helyette”: ugyanabba az idősávba más kerül. Csak rögzített (mai) napon. */
+  Sch.swapOptions = function (state, date, itemId) {
+    var day = state.days[date];
+    if (!day) return { acts: [], tasks: [] };
+    var orig = day.items.find(function (i) { return i.id === itemId; });
+    var doneHere = {};
+    day.items.forEach(function (i) { if (i.done) doneHere[i.refId] = 1; });
+    var acts = state.activities.filter(function (a) {
+      if (a.paused || doneHere[a.id] || (orig && orig.refId === a.id)) return false;
+      var p = Sch.proj(state, a.projectId);
+      return !(p && p.archived);
+    }).sort(function (x, y) { return (y.habit ? 1 : 0) - (x.habit ? 1 : 0) || (x.title < y.title ? -1 : 1); });
+    var tasks = state.tasks.filter(function (t) {
+      if (t.done || (orig && orig.refId === t.id)) return false;
+      return t.mode === 'due' ? Sch.taskRemaining(t) > 0 : true;
+    }).sort(function (x, y) {
+      var dx = x.mode === 'due' ? x.due : x.date, dy = y.mode === 'due' ? y.due : y.date;
+      return (dx || '9999') < (dy || '9999') ? -1 : 1;
+    });
+    return { acts: acts, tasks: tasks };
+  };
+
+  Sch.swap = function (state, date, itemId, choice) {
+    var day = state.days[date];
+    if (!day) return null;
+    var orig = day.items.find(function (i) { return i.id === itemId; });
+    if (!orig || orig.start == null) return null;
+    var start = orig.start, len = Math.max(15, (orig.end || orig.start + (orig.dur || 30)) - orig.start);
+    var topAt = (day.top3 || []).indexOf(orig.id);
+    var note = '';
+    // az eredeti sorsa
+    day.items = day.items.filter(function (i) { return i !== orig; });
+    if (orig.kind === 'task') {
+      var ot = Sch.task(state, orig.refId);
+      if (ot && ot.mode === 'day' && !ot.done) { ot.date = U.addDays(date, 1); ot.pushes = (ot.pushes || 0) + 1; note = 'holnapra került'; }
+      else if (ot && ot.mode === 'due') note = 'a maradéka újraoszlik';
+    } else if (orig.kind === 'activity') note = 'ma kimarad';
+    // az új tétel
+    var it = null;
+    if (choice.kind === 'activity') {
+      var a = Sch.act(state, choice.id);
+      if (!a) return null;
+      day.items = day.items.filter(function (i) { return !(i.kind === 'activity' && i.refId === a.id && !i.done); });
+      it = Sch.activityItem(state, a, [], U.toInputTime(start));
+    } else {
+      var t = choice.kind === 'new'
+        ? (function () { var nt = { id: U.uid(), title: choice.title, mode: 'day', date: date, time: null, est: len, projectId: null, catId: orig.catId || null, done: false, pushes: 0, spent: 0, createdAt: Date.now() }; state.tasks.push(nt); return nt; })()
+        : Sch.task(state, choice.id);
+      if (!t) return null;
+      day.items = day.items.filter(function (i) { return !(i.kind === 'task' && i.refId === t.id && !i.done); });
+      var m = len;
+      if (t.mode === 'due') m = Math.min(len, Math.max(15, Sch.taskRemaining(t)));
+      else { t.date = date; }
+      it = taskItem(state, t, [], m, U.toInputTime(start), date);
+      if (t.mode !== 'due') it.fixedDur = true;
+    }
+    it.start = start;
+    if (choice.kind === 'activity' || (it.kind === 'task' && it.fixedDur)) it.dur = len;
+    it.end = start + it.dur;
+    it.swappedFrom = orig.title;
+    day.items.push(it);
+    if (topAt >= 0) day.top3[topAt] = it.id; else day.top3 = (day.top3 || []).filter(function (id) { return day.items.some(function (i) { return i.id === id; }); });
+    Sch.markConflicts(day.items); Sch.sortItems(day.items);
+    return { item: it, orig: orig, note: note };
   };
 
   Sch.tasksFor = function (state, date) { return state.tasks.filter(function (t) { return t.mode !== 'due' && t.date === date; }); };

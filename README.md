@@ -39,6 +39,12 @@ Az adataid **a telefonodon** vannak, nem a GitHubon.
 
 ## Változások
 
+**1.2.0**
+- Az idővonalon minden blokk elején a kategória ikonja áll. Kategóriánként 34 ikon közül lehet választani (Beállítások → Kategóriák → az ikonra koppintva).
+- „Helyette mást…”: a mai nap egy tételére koppintva ugyanabba az idősávba másik szokást, feladatot vagy egy új teendőt tehetsz. Az eredeti ma kimarad (sorozatot nem tör), a feladat holnapra kerül.
+- Kincsesláda: saját kategóriák, jelleggel (termék / szolgáltatás / virtuális). A jelleg dönti el, mit kérdez: „Hol kapható?” vagy „Hol?”. A „Hol láttam?” mező megszűnt; a régi bejegyzések szövege megjegyzésként megmaradt.
+- Push értesítések az ntfy appon keresztül: időponthoz kötött eseményekről, feladatokról és határidőkről. Beállítások → Értesítések.
+
 **1.1.0**
 - A feladatok az idővonalra kerülnek. Kétféle ütemezés: *Adott napon* (rászánt idővel, opcionális kezdéssel) és *Határidőig* (a rászánt időt az app felosztja a határidőig hátralévő napokra, csak oda, ahol van elég szabad idő; a kipipált blokkok levonódnak, a maradék újraoszlik).
 - Ötleteknél a legördülőből új kategória vehető fel (az Írói munka alá kerül gyűjtőként).

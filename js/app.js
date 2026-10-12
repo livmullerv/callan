@@ -2,7 +2,7 @@
 (function () {
   var CA = window.CA = window.CA || {};
   var U = CA.util, Sch = CA.sched, Store = CA.store, V = CA.views;
-  CA.VERSION = '1.1.0';
+  CA.VERSION = '1.2.0';
   var ALL = [0, 1, 2, 3, 4, 5, 6];
 
   var state = null, root = null;
@@ -37,7 +37,15 @@
       }
     }
   }
-  function commit() { Store.save(state); render(); }
+  var syncTimer = null;
+  function syncSoon(ms) {
+    if (!state || !state.settings.notify || (!state.settings.notify.on && !Object.keys(state.notifySent || {}).length)) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(function () {
+      CA.notify.sync(state).then(function (r) { if (r && r.changed) { Store.save(state); if (ui.sheet && ui.sheet.type === 'settings') render(); } });
+    }, ms == null ? 2500 : ms);
+  }
+  function commit() { Store.save(state); render(); syncSoon(); }
   var toastTimer = null;
   function toast(text, a, id, label) {
     ui.toast = { text: text, a: a, id: id, label: label };
@@ -69,16 +77,16 @@
     var t = U.today(), s = { type: type, id: ds.id || null, date: ds.date || null };
     if (type === 'newcat') {
       var used = state.categories.map(function (c) { return c.color; });
-      s.draft = { name: '', color: Store.PALETTE.find(function (c) { return used.indexOf(c) < 0; }) || Store.PALETTE[0] };
+      s.draft = { name: '', color: Store.PALETTE.find(function (c) { return used.indexOf(c) < 0; }) || Store.PALETTE[0], icon: 'star' };
     } else if (type === 'entry') {
       if (ds.edit === 'event') {
         var e = state.events.find(function (x) { return x.id === ds.id; });
         if (!e) return;
-        s.draft = { mode: 'event', editId: e.id, title: e.title, date: e.date, start: e.start || '', end: e.end || '', allDay: !!e.allDay, travel: e.travel || '', catId: e.catId, projectId: e.projectId || '', note: e.note || '', res: {} };
+        s.draft = { mode: 'event', editId: e.id, title: e.title, date: e.date, start: e.start || '', end: e.end || '', allDay: !!e.allDay, travel: e.travel || '', catId: e.catId, projectId: e.projectId || '', note: e.note || '', res: {}, remind: e.remind };
       } else if (ds.edit === 'task') {
         var k = state.tasks.find(function (x) { return x.id === ds.id; });
         if (!k) return;
-        s.draft = { mode: 'task', editId: k.id, title: k.title, tmode: k.mode || 'day', date: k.date || '', time: k.time || '', due: k.due || '', estH: k.est ? String(Math.round(k.est / 60 * 100) / 100).replace('.', ',') : '', chunk: k.chunk || 60, spent: k.spent || 0, catId: k.catId, projectId: k.projectId || '', res: {} };
+        s.draft = { mode: 'task', editId: k.id, title: k.title, tmode: k.mode || 'day', date: k.date || '', time: k.time || '', due: k.due || '', estH: k.est ? String(Math.round(k.est / 60 * 100) / 100).replace('.', ',') : '', chunk: k.chunk || 60, spent: k.spent || 0, catId: k.catId, projectId: k.projectId || '', res: {}, remind: k.remind };
       } else {
         var p = ds.proj ? Sch.proj(state, ds.proj) : null;
         s.draft = { mode: ds.mode || 'event', title: '', date: ds.proj && ds.mode === 'task' ? '' : (ds.date || ui.cal.sel || t), start: '', end: '', allDay: false, travel: '', catId: p ? p.catId : null, projectId: p ? p.id : '', note: '', res: {}, tmode: 'day', time: '', due: '', estH: '', chunk: 60, spent: 0 };
@@ -106,8 +114,12 @@
       s.draft = { title: i.title, body: i.body, projectId: i.projectId || '' };
     } else if (type === 'treasure') {
       var tr = ds.id ? state.treasures.find(function (x) { return x.id === ds.id; }) : null;
-      s.draft = tr ? JSON.parse(JSON.stringify(tr)) : { title: '', type: 'book', seen: '', buy: '', link: '', date: '', got: false };
+      s.draft = tr ? JSON.parse(JSON.stringify(tr)) : { title: '', type: (ui.trF !== 'all' && ui.trF) || (state.treasureCats[0] || {}).id || 'other', buy: '', link: '', date: '', got: false, note: '' };
       s.id = ds.id || 'new';
+    } else if (type === 'tcat') {
+      var tc = ds.id ? state.treasureCats.find(function (x) { return x.id === ds.id; }) : null;
+      s.draft = tc ? JSON.parse(JSON.stringify(tc)) : { name: '', kind: 'product', icon: 'beauty' };
+      s.target = ds.target; s.id = ds.id || 'new';
     } else if (type === 'ideaCat') {
       s.draft = { name: '' }; s.target = ds.target;
     } else if (type === 'weight') {
@@ -276,6 +288,18 @@
     ui.toast = null; commit();
     toast(it && it.start != null ? 'Bekerült a mai napba, ' + U.toHM(it.start) + '-kor.' : 'Bekerült, de ma nem találtam neki helyet.');
   };
+  function doSwap(d, choice) {
+    var r = Sch.swap(state, d.date, d.id, choice);
+    if (!r) { toast('Ezt most nem tudtam cserélni.'); return; }
+    closeAll(); commit();
+    toast(r.item.title + ' kerül a helyére' + (r.note ? '; ' + r.orig.title + ' ' + r.note : '') + '.');
+  }
+  A.swapTo = function (d) { doSwap(d, { kind: d.kind, id: d.ref }); };
+  A.swapNew = function (d) {
+    var v = (document.getElementById('sw-new') || {}).value;
+    if (!v || !v.trim()) { toast('Írd be, mi legyen helyette.'); return; }
+    doSwap(d, { kind: 'new', title: v.trim() });
+  };
   A.calMonth = function (d) {
     var m = (ui.cal.month || U.today().slice(0, 7)).split('-').map(Number);
     var nd = new Date(m[0], m[1] - 1 + (+d.d), 1);
@@ -326,6 +350,29 @@
     else ui.q.proj = p.id;
     commit(); toast('„' + name + '” kategória kész.');
   };
+  A.notifyToggle = function () {
+    var n = state.settings.notify;
+    if (n.on) {
+      n.on = false; commit();
+      CA.notify.sync(state).then(function () { Store.save(state); render(); });
+      toast('Értesítések kikapcsolva. A beütemezetteket töröltem.');
+      return;
+    }
+    if (!n.topic) n.topic = CA.notify.newTopic();
+    n.on = true; n.lastError = null; commit(); syncSoon(0);
+  };
+  A.notifyTest = function () {
+    CA.notify.test(state).then(function () { toast('Elküldtem. Pár másodpercen belül meg kell érkeznie.'); })
+      .catch(function () { toast('Nem értem el az értesítő szolgáltatást. Van internet?'); });
+  };
+  A.notifyCopy = function () {
+    var t = state.settings.notify.topic;
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { toast('Témanév vágólapra másolva.'); }, function () { toast(t); });
+    else toast(t);
+  };
+  A.notifySync = function () {
+    CA.notify.sync(state, { force: true }).then(function (r) { Store.save(state); render(); toast(r.ok ? 'Emlékeztetők frissítve.' : 'Nem értem el az értesítő szolgáltatást. Később újrapróbálom.'); });
+  };
   A.cycleToggle = function () {
     var c = state.settings.cycle; c.on = !c.on; commit();
   };
@@ -343,10 +390,32 @@
   A.saveTreasure = function () {
     var d = ui.sheet.draft;
     if (!(d.title || '').trim()) { toast('Adj neki nevet.'); return; }
-    var obj = { title: d.title.trim(), type: d.type, seen: (d.seen || '').trim(), buy: (d.buy || '').trim(), link: (d.link || '').trim(), date: d.date || null, got: !!d.got };
+    var obj = { title: d.title.trim(), type: d.type, buy: (d.buy || '').trim(), link: (d.link || '').trim(), date: d.date || null, got: !!d.got, note: (d.note || '').trim() };
     if (d.id) Object.assign(state.treasures.find(function (x) { return x.id === d.id; }), obj);
     else state.treasures.push(Object.assign({ id: U.uid(), createdAt: Date.now() }, obj));
     closeSheet(); commit(); toast(obj.date ? 'Elmentve. ' + U.cap(U.onDay(obj.date)) + ' szólok.' : 'Elmentve a Kincsesládába.');
+  };
+  A.saveTcat = function () {
+    var d = ui.sheet.draft, name = (d.name || '').trim();
+    if (!name) { toast('Adj nevet a kategóriának.'); return; }
+    var c = d.id ? state.treasureCats.find(function (x) { return x.id === d.id; }) : null;
+    if (c) Object.assign(c, { name: name, kind: d.kind, icon: d.icon });
+    else { c = { id: 't_' + U.uid(), name: name, kind: d.kind, icon: d.icon }; state.treasureCats.push(c); }
+    var target = ui.sheet.target;
+    ui.sheet = ui.stack.pop() || null;
+    if (target === 'draft' && ui.sheet && ui.sheet.draft) ui.sheet.draft.type = c.id;
+    commit(); toast('„' + name + '” elmentve.');
+  };
+  A.delTcat = function () {
+    var d = ui.sheet.draft;
+    var rest = state.treasureCats.filter(function (x) { return x.id !== d.id; });
+    var n = state.treasures.filter(function (x) { return x.type === d.id; }).length;
+    var to = rest.find(function (x) { return x.id === 'other'; }) || rest[0];
+    if (!confirm('Törlöd: ' + d.name + '?' + (n ? ' A ' + n + ' kincse ide kerül: ' + to.name + '.' : ''))) return;
+    state.treasures.forEach(function (x) { if (x.type === d.id) x.type = to.id; });
+    state.treasureCats = rest;
+    if (ui.trF === d.id) ui.trF = 'all';
+    closeSheet(); commit();
   };
   A.delTreasure = function () {
     if (!confirm('Biztosan törlöd?')) return;
@@ -369,7 +438,7 @@
       var ev = d.editId ? state.events.find(function (x) { return x.id === d.editId; }) : { id: U.uid() };
       var endTxt = d.end || U.toInputTime(U.toMin(d.start) + 60);
       if (!d.allDay && U.toMin(endTxt) <= U.toMin(d.start)) endTxt = U.toInputTime(U.toMin(d.start) + 60);
-      Object.assign(ev, { title: d.title.trim(), date: d.date, start: d.allDay ? null : d.start, end: d.allDay ? null : endTxt, allDay: !!d.allDay, travel: parseInt(d.travel, 10) || 0, catId: d.catId || (p && p.catId) || null, projectId: d.projectId || null, note: d.note || '' });
+      Object.assign(ev, { title: d.title.trim(), date: d.date, start: d.allDay ? null : d.start, end: d.allDay ? null : endTxt, allDay: !!d.allDay, travel: parseInt(d.travel, 10) || 0, catId: d.catId || (p && p.catId) || null, projectId: d.projectId || null, note: d.note || '', remind: d.remind });
       if (!d.editId) state.events.push(ev);
       Object.keys(d.res || {}).forEach(function (id) { if (d.res[id]) Sch.resolve(state, d.date, id, d.res[id]); });
       closeSheet(); commit(); toast(d.editId ? 'Esemény frissítve.' : 'Bekerült a naptárba: ' + U.fmtLong(d.date) + '.');
@@ -378,7 +447,7 @@
       if (due && !d.due) { toast('Add meg a határidőt.'); return; }
       if (due && !est) { toast('Add meg, mennyi időt szánsz rá.'); return; }
       var t = d.editId ? state.tasks.find(function (x) { return x.id === d.editId; }) : { id: U.uid(), done: false, pushes: 0, spent: 0, createdAt: Date.now() };
-      Object.assign(t, { title: d.title.trim(), mode: due ? 'due' : 'day', date: due ? null : (d.date || null), time: due ? null : (d.time || null), due: due ? d.due : null, est: est, chunk: due ? (+d.chunk || 60) : null, projectId: d.projectId || null, catId: d.catId || (p && p.catId) || null });
+      Object.assign(t, { title: d.title.trim(), mode: due ? 'due' : 'day', date: due ? null : (d.date || null), time: due ? null : (d.time || null), due: due ? d.due : null, est: est, chunk: due ? (+d.chunk || 60) : null, projectId: d.projectId || null, catId: d.catId || (p && p.catId) || null, remind: d.remind });
       if (due && t.done && t.spent < t.est) t.done = false;
       if (!d.editId) state.tasks.push(t);
       closeSheet(); commit();
@@ -474,12 +543,13 @@
   A.saveCat = function () {
     var d = ui.sheet.draft;
     if (!(d.name || '').trim()) { toast('Adj nevet a kategóriának.'); return; }
-    var c = { id: 'c_' + U.uid(), name: d.name.trim(), color: d.color, icon: 'dot' };
+    var c = { id: 'c_' + U.uid(), name: d.name.trim(), color: d.color, icon: d.icon || 'dot' };
     state.categories.push(c);
     ui.sheet = ui.stack.pop() || null;
     if (ui.sheet && ui.sheet.draft && 'catId' in ui.sheet.draft) ui.sheet.draft.catId = c.id;
     commit();
   };
+  A.catIconSet = function (d) { var c = Sch.cat(state, d.id); if (c) { c.icon = d.k; closeSheet(); commit(); } };
   A.catColor = function (d) { var c = Sch.cat(state, d.id); if (c) { c.color = d.c; commit(); } };
   A.screenOk = function (d) { var day = state.days[U.today()]; if (day) { day.screenOk = d.v === '1'; commit(); } };
   A.closeDay = function () {
@@ -504,6 +574,7 @@
     if (m) metricAutoDone(m, v, d.date);
     commit();
   };
+  CH.remind = function (el) { if (ui.sheet && ui.sheet.draft) { ui.sheet.draft.remind = CA.notify.parseRemind(el.value); } };
   CH.setting = function (el) {
     var k = el.dataset.k;
     state.settings[k] = k === 'weighDay' ? parseInt(el.value, 10) : el.value;
@@ -599,9 +670,11 @@
       Store.persist().then(function (p) { ui.persisted = !!p; });
       registerSW();
       setInterval(tick, 60000);
+      setInterval(function () { syncSoon(0); }, 15 * 60000);
+      syncSoon(1500);
       document.addEventListener('visibilitychange', function () {
         if (document.hidden) Store.flush(state);
-        else { ensureToday(); if (!isTyping()) render(); }
+        else { ensureToday(); if (!isTyping()) render(); syncSoon(800); }
       });
       window.addEventListener('pagehide', function () { Store.flush(state); });
     });

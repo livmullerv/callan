@@ -231,3 +231,17 @@ select.field { appearance: none; -webkit-appearance: none; background-image: url
 /* Üzenet */
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-b)); z-index: 60; background: var(--ink); color: #fff; border-radius: 16px; padding: 12px 14px 12px 18px; display: flex; align-items: center; gap: 12px; font-size: 14px; box-shadow: 0 10px 30px rgba(46, 33, 26, .25); max-width: calc(100% - 32px); }
 .toast button { border: 0; background: rgba(255, 255, 255, .14); color: #fff; border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: 13px; }
+
+/* 1.2: ikonok */
+.tl-ico { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 11px; display: flex; align-items: center; justify-content: center; padding: 0; }
+.tl-ico.sm { width: 28px; height: 28px; border-radius: 9px; }
+.tl-ico.sm svg { width: 16px; height: 16px; }
+.icon-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.icon-opt { height: 48px; border: 0; border-radius: 14px; background: var(--field); display: flex; align-items: center; justify-content: center; padding: 0; }
+
+/* 1.2: értesítések */
+.steps { display: flex; flex-direction: column; gap: 14px; }
+.step { display: flex; gap: 12px; align-items: flex-start; }
+.step-n { width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.topic { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; background: var(--field); border-radius: 10px; padding: 9px 10px; font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+a.btn { display: inline-flex; }

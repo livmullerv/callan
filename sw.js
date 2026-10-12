@@ -1,10 +1,10 @@
 /* Callan service worker – offline működés és frissítések.
    FONTOS: minden új kiadásnál növeld a VERSION értékét, különben a telefon nem veszi észre a frissítést. */
-const VERSION = 'callan-1.1.0';
+const VERSION = 'callan-1.2.0';
 const FONTS = 'callan-fonts';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'js/util.js', 'js/callan.js', 'js/store.js', 'js/scheduler.js', 'js/ui.js', 'js/app.js',
+  'js/util.js', 'js/callan.js', 'js/store.js', 'js/scheduler.js', 'js/notify.js', 'js/ui.js', 'js/app.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/favicon.svg', 'icons/favicon-32.png', 'icons/apple-touch-icon.png'
 ];
 

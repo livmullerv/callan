@@ -3,7 +3,7 @@
   var CA = window.CA = window.CA || {};
   var U = CA.util;
   var DB = 'callan', OS = 'kv', KEY = 'state', LS_KEY = 'callan-state';
-  var SCHEMA = 2;
+  var SCHEMA = 3;
   var S = CA.store = { SCHEMA: SCHEMA };
 
   function openDB() {
@@ -73,15 +73,37 @@
       (s.tasks || []).forEach(function (t) { if (!t.mode) t.mode = 'day'; if (t.spent == null) t.spent = 0; });
       s.v = 2;
     }
-    ['categories', 'projects', 'activities', 'metrics', 'events', 'tasks', 'ideas', 'treasures', 'periods'].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; });
-    ['metricLogs', 'days', 'overrides'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+    if (s.v < 3) {
+      // 1.2: szerkeszthető kincs-kategóriák, „Hol láttam” helyett megjegyzés; értesítések
+      if (!Array.isArray(s.treasureCats) || !s.treasureCats.length) s.treasureCats = S.defaultTreasureCats();
+      (s.treasures || []).forEach(function (t) {
+        if (t.seen) { t.note = (t.note ? t.note + '\n' : '') + 'Láttam: ' + t.seen; }
+        delete t.seen;
+        if (!s.treasureCats.some(function (c) { return c.id === t.type; })) t.type = 'other';
+      });
+      s.v = 3;
+    }
+    ['categories', 'projects', 'activities', 'metrics', 'events', 'tasks', 'ideas', 'treasures', 'periods', 'treasureCats'].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; });
+    ['metricLogs', 'days', 'overrides', 'notifySent'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
     s.settings = Object.assign(S.defaultSettings(), s.settings || {});
     s.settings.cycle = Object.assign({ on: false, len: 28, period: 5 }, s.settings.cycle || {});
+    s.settings.notify = Object.assign({ on: false, topic: null, lastSync: null, lastError: null, keepaliveAt: 0 }, s.settings.notify || {});
+    if (!s.treasureCats.length) s.treasureCats = S.defaultTreasureCats();
     return s;
   };
 
   S.defaultSettings = function () {
-    return { wake: '08:00', workStart: '09:00', workEnd: '18:00', lunch: '13:00', lunchLen: 45, screenCut: '21:00', weighDay: 6, lastBackup: null, cycle: { on: false, len: 28, period: 5 } };
+    return { wake: '08:00', workStart: '09:00', workEnd: '18:00', lunch: '13:00', lunchLen: 45, screenCut: '21:00', weighDay: 6, lastBackup: null, cycle: { on: false, len: 28, period: 5 }, notify: { on: false, topic: null, lastSync: null, lastError: null, keepaliveAt: 0 } };
+  };
+
+  S.defaultTreasureCats = function () {
+    return [
+      { id: 'book', name: 'Könyv', kind: 'product', icon: 'write' },
+      { id: 'gadget', name: 'Kütyü', kind: 'product', icon: 'gadget' },
+      { id: 'series', name: 'Sorozat', kind: 'virtual', icon: 'tv' },
+      { id: 'film', name: 'Film', kind: 'virtual', icon: 'film' },
+      { id: 'other', name: 'Egyéb', kind: 'product', icon: 'gem' }
+    ];
   };
 
   S.PALETTE = ['#4F6B63', '#846044', '#96604F', '#6F7A5A', '#A07845', '#8C6E78', '#6A7A8C', '#7C6A55', '#5E6E4E', '#9A7A60'];
@@ -143,6 +165,8 @@
       days: {},
       ideas: [],
       treasures: [],
+      treasureCats: S.defaultTreasureCats(),
+      notifySent: {},
       periods: []
     };
   };

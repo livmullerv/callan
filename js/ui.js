@@ -11,14 +11,43 @@
   var F = 'fill="currentColor" opacity="0.22"';
   var CAT_ICONS = {
     home: '<rect x="3" y="4.5" width="18" height="11" rx="2.5" ' + F + '></rect><rect x="3" y="4.5" width="18" height="11" rx="2.5" ' + S + '></rect><path d="M9 20h6M12 15.5V20" ' + S + '></path>',
+    work: '<rect x="3" y="7" width="18" height="13" rx="2.5" ' + F + '></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18M5.5 7h13A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-8A2.5 2.5 0 0 1 5.5 7Z" ' + S + '></path>',
     fires: '<path d="M12 2.8c3 3.3 5.6 5.7 5.6 9.2a5.6 5.6 0 0 1-11.2 0c0-2.3 1.2-3.9 2.7-5.5 1.4-1.4 2.5-2.6 2.9-3.7Z" ' + F + '></path><path d="M12 20.2a3.1 3.1 0 0 1-3.1-3.1c0-1.7 1.4-2.7 3.1-4.8 1.7 2.1 3.1 3.1 3.1 4.8a3.1 3.1 0 0 1-3.1 3.1Z" ' + S + '></path>',
     write: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5Z" ' + F + '></path><path d="M19 18v3H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3H19ZM8.5 3v15" ' + S + '></path>',
-    grow: '<path d="M20.5 3.5c0 8.3-4.7 12.5-10.4 12.5-1.6 0-3.1-.4-4.1-1 0-7.3 5.2-11.5 14.5-11.5Z" fill="currentColor" opacity="0.24"></path><path d="M5 20.5c1.1-5.4 4.8-9.6 9.6-11.6" ' + S + '></path>',
+    grow: '<path d="M20.5 3.5c0 8.3-4.7 12.5-10.4 12.5-1.6 0-3.1-.4-4.1-1 0-7.3 5.2-11.5 14.5-11.5Z" ' + F + '></path><path d="M20.5 3.5c0 8.3-4.7 12.5-10.4 12.5-1.6 0-3.1-.4-4.1-1 0-7.3 5.2-11.5 14.5-11.5ZM5 20.5c1.1-5.4 4.8-9.6 9.6-11.6" ' + S + '></path>',
+    learn: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5Z" ' + F + '></path><path d="M2.5 9 12 4.5 21.5 9 12 13.5ZM6.5 11v4.8c1.6 1.5 3.4 2.2 5.5 2.2s3.9-.7 5.5-2.2V11M21.5 9v5" ' + S + '></path>',
     hobby: '<path d="M5 8h11v6a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5Z" ' + F + '></path><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M5 8h11v6a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5ZM9 3.5v2M12.5 3.5v2" ' + S + '></path>',
     family: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z" ' + F + '></path><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z" ' + S + '></path>',
+    house: '<path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z" ' + F + '></path><path d="M3 11.3 12 4l9 7.3M5.5 9.6V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.6M10 20.5v-5.5h4v5.5" ' + S + '></path>',
+    person: '<circle cx="12" cy="8" r="4" ' + F + '></circle><circle cx="12" cy="8" r="4" ' + S + '></circle><path d="M4.5 20.5c.8-4 3.8-6 7.5-6s6.7 2 7.5 6" ' + S + '></path>',
+    money: '<circle cx="12" cy="12" r="8.5" ' + F + '></circle><circle cx="12" cy="12" r="8.5" ' + S + '></circle><path d="M14.8 9.2c-.5-.9-1.6-1.5-2.8-1.5-1.6 0-2.8.9-2.8 2.1 0 2.9 5.7 1.6 5.7 4.4 0 1.2-1.2 2.1-2.9 2.1-1.3 0-2.4-.6-2.9-1.5M12 6v1.7M12 16.3V18" ' + S + '></path>',
+    chat: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5Z" ' + F + '></path><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5ZM8.5 8.5h7M8.5 11.5h4.5" ' + S + '></path>',
+    mic: '<rect x="8.5" y="2.8" width="7" height="12" rx="3.5" ' + F + '></rect><rect x="8.5" y="2.8" width="7" height="12" rx="3.5" ' + S + '></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" ' + S + '></path>',
+    camera: '<rect x="3" y="7" width="18" height="13" rx="2.5" ' + F + '></rect><path d="M8 7l1.5-2.5h5L16 7M5.5 7h13A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-8A2.5 2.5 0 0 1 5.5 7Z" ' + S + '></path><circle cx="12" cy="13.3" r="3.3" ' + S + '></circle>',
+    palette: '<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.4 0 2-.8 2-1.8 0-1.4-1.2-1.6-1.2-2.8 0-1 .8-1.6 1.9-1.6h2.2c2.3 0 3.6-1.5 3.6-3.7C20.5 6.6 16.7 3.5 12 3.5Z" ' + F + '></path><path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.4 0 2-.8 2-1.8 0-1.4-1.2-1.6-1.2-2.8 0-1 .8-1.6 1.9-1.6h2.2c2.3 0 3.6-1.5 3.6-3.7C20.5 6.6 16.7 3.5 12 3.5Z" ' + S + '></path><circle cx="7.8" cy="11" r="1.2" fill="currentColor"></circle><circle cx="10" cy="7.3" r="1.2" fill="currentColor"></circle><circle cx="14.6" cy="7.6" r="1.2" fill="currentColor"></circle>',
+    music: '<circle cx="7.5" cy="17.5" r="3" ' + F + '></circle><circle cx="17.5" cy="15.5" r="3" ' + F + '></circle><path d="M10.5 17.5V6l10-2.5v12M10.5 9.5l10-2.5" ' + S + '></path><circle cx="7.5" cy="17.5" r="3" ' + S + '></circle><circle cx="17.5" cy="15.5" r="3" ' + S + '></circle>',
+    sport: '<rect x="2.5" y="8.5" width="4" height="7" rx="1.3" ' + F + '></rect><rect x="17.5" y="8.5" width="4" height="7" rx="1.3" ' + F + '></rect><path d="M6.5 12h11M4.5 8.5v7M19.5 8.5v7M2.5 10.5v3M21.5 10.5v3" ' + S + '></path><rect x="4.5" y="7" width="3" height="10" rx="1.2" ' + S + '></rect><rect x="16.5" y="7" width="3" height="10" rx="1.2" ' + S + '></rect>',
+    walk: '<circle cx="13.5" cy="4.5" r="2" ' + F + '></circle><circle cx="13.5" cy="4.5" r="2" ' + S + '></circle><path d="M8 11.5l3.2-3.2c.6-.6 1.6-.7 2.3-.1l1.9 1.6 2.6.7M12.4 8.6l-1.2 5.4 3.3 2.6.9 4.4M11.2 14l-2.4 2.7-3.3 1" ' + S + '></path>',
+    food: '<path d="M3.5 12h17a8.5 8.5 0 0 1-17 0Z" ' + F + '></path><path d="M3.5 12h17a8.5 8.5 0 0 1-17 0ZM8 4.5c-.8 1 .8 2 0 3M12 3.5c-.8 1 .8 2 0 3M16 4.5c-.8 1 .8 2 0 3" ' + S + '></path>',
+    plane: '<path d="M10 13 3.5 11l1.5-1.5 7 .5 4-4.5c1-1 2.6-1.2 3.3-.5.7.7.5 2.3-.5 3.3l-4.5 4 .5 7L13.3 20.8 11 14.5Z" ' + F + '></path><path d="M10.5 13.5 3.5 11l1.5-1.5 7 .5 4-4.5c1-1 2.6-1.2 3.3-.5.7.7.5 2.3-.5 3.3l-4.5 4 .5 7-1.5 1.5-2.5-7ZM6.5 17.5l-2 .5.5-2 2.5-2" ' + S + '></path>',
+    pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" ' + F + '></path><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" ' + S + '></path><circle cx="12" cy="10" r="2.4" ' + S + '></circle>',
+    paw: '<ellipse cx="12" cy="16" rx="4.3" ry="3.8" ' + F + '></ellipse><ellipse cx="12" cy="16" rx="4.3" ry="3.8" ' + S + '></ellipse><circle cx="6" cy="10.5" r="1.8" ' + S + '></circle><circle cx="9.5" cy="6.3" r="1.8" ' + S + '></circle><circle cx="14.5" cy="6.3" r="1.8" ' + S + '></circle><circle cx="18" cy="10.5" r="1.8" ' + S + '></circle>',
+    sun: '<circle cx="12" cy="12" r="4.5" ' + F + '></circle><circle cx="12" cy="12" r="4.5" ' + S + '></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4" ' + S + '></path>',
+    moon: '<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" ' + F + '></path><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" ' + S + '></path>',
+    star: '<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z" ' + F + '></path><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z" ' + S + '></path>',
+    beauty: '<path d="M11 3c.6 3.8 2.2 5.4 6 6-3.8.6-5.4 2.2-6 6-.6-3.8-2.2-5.4-6-6 3.8-.6 5.4-2.2 6-6Z" ' + F + '></path><path d="M11 3c.6 3.8 2.2 5.4 6 6-3.8.6-5.4 2.2-6 6-.6-3.8-2.2-5.4-6-6 3.8-.6 5.4-2.2 6-6ZM18 14.5c.3 1.7 1 2.4 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.1 2.2-.8 2.5-2.5Z" ' + S + '></path>',
+    gift: '<rect x="4" y="11" width="16" height="9.5" rx="1.5" ' + F + '></rect><path d="M3 7.5h18v3.5H3ZM4.5 11v8a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-8M12 7.5v13M12 7.5S10.5 3.5 8 3.5C6.5 3.5 6 4.7 6.5 5.7 7.2 7 9 7.5 12 7.5ZM12 7.5s1.5-4 4-4c1.5 0 2 1.2 1.5 2.2-.7 1.3-2.5 1.8-5.5 1.8Z" ' + S + '></path>',
+    cart: '<path d="M6 7h14.5l-1.7 7.2a2 2 0 0 1-2 1.5H8.6a2 2 0 0 1-2-1.6Z" ' + F + '></path><path d="M3 4h2.3l2.1 10.1a2 2 0 0 0 2 1.6h7.4a2 2 0 0 0 2-1.5L20.5 7H6" ' + S + '></path><circle cx="10" cy="19.5" r="1.5" ' + S + '></circle><circle cx="17" cy="19.5" r="1.5" ' + S + '></circle>',
+    gadget: '<rect x="5.5" y="2.5" width="13" height="19" rx="2.6" ' + F + '></rect><rect x="5.5" y="2.5" width="13" height="19" rx="2.6" ' + S + '></rect><path d="M10.5 18.2h3M8.5 6.5h7M8.5 9.5h7M8.5 12.5h4" ' + S + '></path>',
+    tv: '<rect x="3" y="5" width="18" height="12.5" rx="2.5" ' + F + '></rect><rect x="3" y="5" width="18" height="12.5" rx="2.5" ' + S + '></rect><path d="M8 21h8M9 2.5l3 2.5 3-2.5" ' + S + '></path>',
+    film: '<rect x="3" y="5" width="18" height="14" rx="2.5" ' + F + '></rect><rect x="3" y="5" width="18" height="14" rx="2.5" ' + S + '></rect><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4" ' + S + '></path>',
+    game: '<path d="M7 7.5h10a5 5 0 0 1 4.8 6.3l-.8 3a2.6 2.6 0 0 1-4.5 1L14.8 16H9.2l-1.7 1.8a2.6 2.6 0 0 1-4.5-1l-.8-3A5 5 0 0 1 7 7.5Z" ' + F + '></path><path d="M7 7.5h10a5 5 0 0 1 4.8 6.3l-.8 3a2.6 2.6 0 0 1-4.5 1L14.8 16H9.2l-1.7 1.8a2.6 2.6 0 0 1-4.5-1l-.8-3A5 5 0 0 1 7 7.5ZM7.5 10.3v3M6 11.8h3" ' + S + '></path><circle cx="15.5" cy="11" r=".9" fill="currentColor"></circle><circle cx="17.3" cy="12.8" r=".9" fill="currentColor"></circle>',
+    gem: '<path d="M6 3h12l4 6-10 12L2 9Z" ' + F + '></path><path d="M6 3h12l4 6-10 12L2 9ZM2 9h20M9.5 3 12 21M14.5 3 12 21" ' + S + '></path>',
     folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" ' + F + '></path><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2ZM3 10h18" ' + S + '></path>',
     dot: '<circle cx="12" cy="12" r="7" ' + F + '></circle><circle cx="12" cy="12" r="7" ' + S + '></circle>'
   };
+  var ICON_ORDER = ["home", "work", "fires", "write", "grow", "learn", "hobby", "family", "house", "person", "money", "chat", "mic", "camera", "palette", "music", "sport", "walk", "food", "plane", "pin", "paw", "sun", "moon", "star", "beauty", "gift", "cart", "gadget", "tv", "film", "game", "gem", "folder", "dot"];
+  V.iconSvg = function (key, size) { return svg(size || 24, CAT_ICONS[key] || CAT_ICONS.dot); };
   var I = {
     check: svg(16, '<path d="M5 12.5 10 17.5 19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path>'),
     plus: svg(18, '<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>'),
@@ -59,6 +88,26 @@
     var col = Sch.catColor(state, catId);
     return '<div class="chip-ico" style="background:' + U.hexA(col, .14) + ';color:' + col + (size ? ';width:' + size + 'px;height:' + size + 'px;border-radius:' + Math.round(size / 3) + 'px' : '') + '">' + catIconSvg(state, catId, size ? Math.round(size * .52) : 24, folder) + '</div>';
   }
+  function remindField(state, kind, d) {
+    var r = CA.notify.remindValue(kind, null, d), on = state.settings.notify && state.settings.notify.on;
+    return '<div class="frow"><label for="e-remind">Emlékeztető</label><select id="e-remind" class="field" style="width:190px" data-change="remind">' +
+      r.opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === r.value ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      (on ? '' : '<p class="help">Push értesítéshez kapcsold be az értesítéseket a Beállításokban.</p>');
+  }
+
+  function iconPick(sel, color, attrsFn) {
+    return '<div class="icon-grid">' + ICON_ORDER.filter(function (k) { return k !== 'folder'; }).map(function (k) {
+      var on = k === sel;
+      return '<button type="button" class="icon-opt' + (on ? ' on' : '') + '" aria-pressed="' + on + '" aria-label="' + k + '" style="color:' + color + ';' + (on ? 'background:' + U.hexA(color, .18) + ';box-shadow:inset 0 0 0 2px ' + color : '') + '" ' + attrsFn(k) + '>' + svg(22, CAT_ICONS[k]) + '</button>';
+    }).join('') + '</div>';
+  }
+  V.iconPick = iconPick;
+  function tlIco(state, it) {
+    var col = it.catId ? Sch.catColor(state, it.catId) : '#8C7A69';
+    var p = it.projectId ? Sch.proj(state, it.projectId) : null;
+    return '<span class="tl-ico" style="color:' + col + ';background:' + U.hexA(col, .16) + '">' + (it.catId ? catIconSvg(state, it.catId, 18) : svg(18, CAT_ICONS.dot)) + '</span>';
+  }
+
   function say(mood, text, actions) {
     return '<div class="sec" style="gap:10px"><div class="say"><div class="say-av">' + C.svg(mood, 64, true) + '</div><div class="say-bubble">' + text + '</div></div>' +
       (actions ? '<div class="say-actions">' + actions + '</div>' : '') + '</div>';
@@ -188,9 +237,9 @@
     var inTop = (info.top3 || []).indexOf(it.id) >= 0;
     var fixed = info.fixed;
     var h = '<div class="tl-row' + (extraCls || '') + '"><div class="tl-time">' + (it.start != null ? U.toHM(it.start) : '') + '</div>' +
-      '<div class="tl-block' + (it.done ? ' done' : '') + '" style="' + blockStyle(state, it) + '">' +
+      '<div class="tl-block' + (it.done ? ' done' : '') + '" style="' + blockStyle(state, it) + '">' + tlIco(state, it) +
       '<button type="button" class="tl-main" style="border:0;background:none;padding:0;text-align:left" data-a="open" data-s="item" data-date="' + date + '" data-id="' + it.id + '">' +
-      '<span class="tl-title">' + esc(it.title) + '</span><span class="tl-sub" style="color:' + col + '">' + (it.start != null ? U.toHM(it.start) + '–' + U.toHM(it.end) + ' · ' : '') + esc(kindLabel(state, it)) + (it.conflict ? ' · <span class="badge-warn">ütközik</span>' : '') + '</span></button>' +
+      '<span class="tl-title">' + esc(it.title) + '</span><span class="tl-sub" style="color:' + col + '">' + (it.start != null ? U.toHM(it.start) + '–' + U.toHM(it.end) + ' · ' : '') + esc(kindLabel(state, it)) + (it.swappedFrom ? ' · ' + esc(it.swappedFrom) + ' helyett' : '') + (it.conflict ? ' · <span class="badge-warn">ütközik</span>' : '') + '</span></button>' +
       (fixed && (it.kind === 'activity' || it.kind === 'task') ? '<button type="button" class="tl-star' + (inTop ? ' on' : '') + '" data-a="star" data-date="' + date + '" data-id="' + it.id + '" aria-pressed="' + inTop + '" aria-label="Fő dolog: ' + esc(it.title) + '">' + I.star + '</button>' : '') +
       (fixed ? check(it.done, col, 'data-a="done" data-date="' + date + '" data-id="' + it.id + '"', 'Kész: ' + it.title, true) : '') +
       '</div></div>';
@@ -259,9 +308,7 @@
     }
 
     // Megjelenések
-    Sch.releases(state, t).forEach(function (r) {
-      h += '<button type="button" class="release" style="border:0;text-align:left" data-a="open" data-s="treasure" data-id="' + r.id + '"><div style="width:38px;height:38px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center">' + I.gem(20) + '</div><div><div class="tiny" style="color:#7A5B33">Ma jelenik meg a Kincsesládából</div><div style="font-size:15px;font-weight:600">' + esc(r.title) + '</div></div></button>';
-    });
+    Sch.releases(state, t).forEach(function (r) { h += releaseCard(state, r, true); });
 
     // Mai három
     var top = (info.top3 || []).map(function (id) { return info.items.find(function (i) { return i.id === id; }); }).filter(Boolean);
@@ -372,14 +419,12 @@
     var tasks = unused ? Sch.tasksFor(state, sel) : [], rel = Sch.releases(state, sel);
     h += '<div class="sec"><div class="between"><h2 class="h2">' + U.fmtLong(sel) + '</h2><div class="small muted">' + (items.length + tasks.length) + ' tétel</div></div>';
     h += cycleRow(state, sel);
-    rel.forEach(function (r) {
-      h += '<button type="button" class="release" style="border:0;text-align:left" data-a="open" data-s="treasure" data-id="' + r.id + '"><div style="width:38px;height:38px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center">' + I.gem(20) + '</div><div><div class="tiny" style="color:#7A5B33">Megjelenik a Kincsesládából</div><div style="font-size:15px;font-weight:600">' + esc(r.title) + '</div></div></button>';
-    });
+    rel.forEach(function (r) { h += releaseCard(state, r, sel === today); });
     if (!items.length && !tasks.length) h += '<div class="card"><div class="empty">' + (unused ? 'Ezen a napon még nem használtad az appot.' : 'Erre a napra nincs semmi betervezve.') + '<button type="button" class="btn-soft" data-a="open" data-s="entry" data-date="' + sel + '">' + I.plus + 'Esemény vagy feladat</button></div></div>';
     else {
       h += '<div class="card pad-s list">' + items.map(function (it) {
         var col = Sch.catColor(state, it.catId);
-        var row = '<button type="button" class="drow" style="width:100%;border:0;background:none;text-align:left" data-a="open" data-s="item" data-date="' + sel + '" data-id="' + it.id + '"><span class="drow-time"' + (it.conflict ? ' style="color:#8A4B3A;font-weight:600"' : '') + '>' + (it.allDay ? 'egész' : (it.start != null ? U.toHM(it.start) : '–')) + '</span><span class="dot" style="background:' + col + '"></span><span class="drow-title"' + (it.done ? ' style="text-decoration:line-through;color:var(--faint)"' : '') + '>' + esc(it.title) + '</span><span class="drow-tag"' + (it.conflict ? ' style="color:#8A4B3A;font-weight:600"' : '') + '>' + (it.conflict ? 'ütközik' : esc(kindLabel(state, it))) + '</span></button>';
+        var row = '<button type="button" class="drow" style="width:100%;border:0;background:none;text-align:left" data-a="open" data-s="item" data-date="' + sel + '" data-id="' + it.id + '"><span class="drow-time"' + (it.conflict ? ' style="color:#8A4B3A;font-weight:600"' : '') + '>' + (it.allDay ? 'egész' : (it.start != null ? U.toHM(it.start) : '–')) + '</span>' + tlIco(state, it).replace('tl-ico', 'tl-ico sm') + '<span class="drow-title"' + (it.done ? ' style="text-decoration:line-through;color:var(--faint)"' : '') + '>' + esc(it.title) + '</span><span class="drow-tag"' + (it.conflict ? ' style="color:#8A4B3A;font-weight:600"' : '') + '>' + (it.conflict ? 'ütközik' : esc(kindLabel(state, it))) + '</span></button>';
         if (it.conflict) row += '<div style="padding-bottom:12px">' + conflictCard(state, sel, it) + '</div>';
         return row;
       }).join('') + tasks.map(function (x) {
@@ -472,43 +517,53 @@
     }).join('') + '</div>';
     return h;
   }
-  var TTYPES = [['book', 'Könyv'], ['gadget', 'Kütyü'], ['series', 'Sorozat'], ['film', 'Film'], ['other', 'Egyéb']];
-  V.TTYPES = TTYPES;
-  function tIcon(type) {
-    var ic = {
-      book: CAT_ICONS.write,
-      gadget: '<rect x="5.5" y="2.5" width="13" height="19" rx="2.6" ' + F + '></rect><rect x="5.5" y="2.5" width="13" height="19" rx="2.6" ' + S + '></rect><path d="M10.5 18.2h3M8.5 6.5h7M8.5 9.5h7M8.5 12.5h4" ' + S + '></path>',
-      series: '<rect x="3" y="5" width="18" height="12.5" rx="2.5" ' + F + '></rect><rect x="3" y="5" width="18" height="12.5" rx="2.5" ' + S + '></rect><path d="M8 21h8M9 2.5l3 2.5 3-2.5" ' + S + '></path>',
-      film: '<rect x="3" y="5" width="18" height="14" rx="2.5" ' + F + '></rect><rect x="3" y="5" width="18" height="14" rx="2.5" ' + S + '></rect><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4" ' + S + '></path>',
-      other: '<path d="M6 3h12l4 6-10 12L2 9Z" ' + F + '></path><path d="M6 3h12l4 6-10 12L2 9ZM2 9h20" ' + S + '></path>'
-    }[type] || CAT_ICONS.dot;
-    return '<div class="chip-ico" style="width:44px;height:44px;border-radius:14px;background:rgba(160,120,69,.16);color:#A07845">' + svg(22, ic) + '</div>';
+  var TKINDS = {
+    product: { label: 'Termék', where: 'Hol kapható?', ph: 'pl. Libri, előrendelés', date: 'Megjelenés napja', today: 'Ma jelenik meg', later: 'Megjelenik', help: 'Megvásárolható dolog: könyv, kütyü, kozmetikum.' },
+    service: { label: 'Szolgáltatás', where: 'Hol?', ph: 'pl. a szalon neve, címe', date: 'Mikortól érhető el?', today: 'Mától elérhető', later: 'Elérhető lesz', help: 'Igénybe vehető dolog: kezelés, tanfolyam, élmény.' },
+    virtual: { label: 'Virtuális', where: 'Hol?', ph: 'pl. Netflix, HBO Max, Spotify', date: 'Megjelenés napja', today: 'Ma jelenik meg', later: 'Megjelenik', help: 'Nézhető, hallgatható dolog: film, sorozat, podcast, játék.' }
+  };
+  V.TKINDS = TKINDS;
+  function tcat(state, id) { return (state.treasureCats || []).find(function (c) { return c.id === id; }) || { id: 'other', name: 'Egyéb', kind: 'product', icon: 'gem' }; }
+  V.tcat = tcat;
+  function tkind(state, x) { return TKINDS[tcat(state, x.type).kind] || TKINDS.product; }
+  function tIcon(state, type, size, bg) {
+    var sz = size || 44;
+    return '<div class="chip-ico" style="width:' + sz + 'px;height:' + sz + 'px;border-radius:' + Math.round(sz / 3.2) + 'px;background:' + (bg || 'rgba(160,120,69,.16)') + ';color:#A07845">' + svg(Math.round(sz / 2), CAT_ICONS[tcat(state, type).icon] || CAT_ICONS.gem) + '</div>';
   }
-  function tLabel(type) { var f = TTYPES.find(function (x) { return x[0] === type; }); return f ? f[1] : 'Egyéb'; }
-  function where(t) {
-    if (!t.seen && !t.buy && !t.link) return '';
-    return '<div class="treasure-where">' + (t.seen ? '<div><b>Láttam</b><span>' + esc(t.seen) + '</span></div>' : '') + (t.buy ? '<div><b>Kapható</b><span>' + esc(t.buy) + '</span></div>' : '') + '</div>';
+  function tLabel(state, type) { return tcat(state, type).name; }
+  function where(state, t) {
+    if (!t.buy && !t.link) return '';
+    var k = tkind(state, t);
+    return '<div class="treasure-where">' + (t.buy ? '<div><b>' + (k.where === 'Hol kapható?' ? 'Kapható' : 'Hol') + '</b><span>' + esc(t.buy) + '</span></div>' : '') +
+      (t.link ? '<div><b>Link</b><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(t.link.replace(/^https?:\/\/(www\.)?/, '')) + '</span></div>' : '') + '</div>';
   }
+  function releaseCard(state, r, isToday) {
+    var k = tkind(state, r);
+    return '<button type="button" class="release" style="border:0;text-align:left" data-a="open" data-s="treasure" data-id="' + r.id + '">' + tIcon(state, r.type, 38, '#fff') +
+      '<div><div class="tiny" style="color:#7A5B33">' + (isToday ? k.today : k.later) + ' · Kincsesláda</div><div style="font-size:15px;font-weight:600">' + esc(r.title) + '</div></div></button>';
+  }
+  V.releaseCard = releaseCard;
   function chest(state, ui) {
     var t = U.today(), f = ui.trF;
     var all = state.treasures.filter(function (x) { return f === 'all' || x.type === f; });
     var h = '<div class="chips"><button type="button" class="chip ' + (f === 'all' ? 'dark' : 'white') + '" data-a="trF" data-f="all">Mind · ' + state.treasures.filter(function (x) { return !x.got; }).length + '</button>' +
-      TTYPES.map(function (ty) { var n = state.treasures.filter(function (x) { return x.type === ty[0] && !x.got; }).length; return n || f === ty[0] ? '<button type="button" class="chip ' + (f === ty[0] ? 'dark' : 'white') + '" data-a="trF" data-f="' + ty[0] + '">' + ty[1] + ' · ' + n + '</button>' : ''; }).join('') + '</div>';
+      state.treasureCats.map(function (c) { var n = state.treasures.filter(function (x) { return x.type === c.id && !x.got; }).length; return '<button type="button" class="chip ' + (f === c.id ? 'dark' : 'white') + '" data-a="trF" data-f="' + c.id + '">' + esc(c.name) + ' · ' + n + '</button>'; }).join('') +
+      '<button type="button" class="chip ghost" data-a="open" data-s="tcats">' + I.gear.replace('width="22" height="22"', 'width="16" height="16"') + 'Kategóriák</button></div>';
     h += '<button type="button" class="btn block" style="height:50px" data-a="open" data-s="treasure">' + I.plus + 'Új kincs</button>';
     var soon = all.filter(function (x) { return !x.got && x.date && x.date >= t; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     var out = all.filter(function (x) { return !x.got && x.date && x.date < t; });
     var any = all.filter(function (x) { return !x.got && !x.date; });
     var got = all.filter(function (x) { return x.got; });
-    if (!soon.length && !out.length && !any.length && !got.length) return h + '<div class="card"><div class="empty">' + C.svg('nyugodt', 72, true) + 'Ide gyűlnek a könyvek, kütyük, sorozatok, amiket meg akarsz szerezni. Ha megadod a megjelenés napját, aznap szólok.</div></div>';
+    if (!soon.length && !out.length && !any.length && !got.length) return h + '<div class="card"><div class="empty">' + C.svg('nyugodt', 72, true) + 'Ide gyűlnek a dolgok, amiket meg akarsz szerezni, ki akarsz próbálni vagy meg akarsz nézni. Ha megadod a dátumot, aznap szólok.</div></div>';
     if (soon.length) {
-      h += '<div class="sec" style="gap:12px"><div class="label">Hamarosan megjelenik</div>' + soon.map(function (x) {
+      h += '<div class="sec" style="gap:12px"><div class="label">Hamarosan</div>' + soon.map(function (x) {
         var dl = daysLeft(x.date);
-        return '<button type="button" class="card" style="border:0;text-align:left;display:flex;flex-direction:column;gap:14px" data-a="open" data-s="treasure" data-id="' + x.id + '"><span class="row" style="align-items:flex-start;gap:14px;width:100%">' + tIcon(x.type) +
-          '<span class="grow" style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15.5px;font-weight:600;line-height:1.3">' + esc(x.title) + '</span><span class="small muted">' + tLabel(x.type) + '</span></span>' +
-          '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span class="serif" style="font-size:19px;font-weight:600;color:' + (dl <= 3 ? '#7A5B33' : 'var(--ink)') + '">' + U.fmtShort(x.date) + '</span><span class="tiny" style="' + (dl <= 3 ? 'color:#7A5B33;font-weight:600' : 'color:var(--muted)') + '">' + (dl === 0 ? 'ma' : dl === 1 ? 'holnap' : dl + ' nap') + '</span></span></span>' + where(x) + '</button>';
+        return '<button type="button" class="card" style="border:0;text-align:left;display:flex;flex-direction:column;gap:14px" data-a="open" data-s="treasure" data-id="' + x.id + '"><span class="row" style="align-items:flex-start;gap:14px;width:100%">' + tIcon(state, x.type) +
+          '<span class="grow" style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15.5px;font-weight:600;line-height:1.3">' + esc(x.title) + '</span><span class="small muted">' + esc(tLabel(state, x.type)) + '</span></span>' +
+          '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span class="serif" style="font-size:19px;font-weight:600;color:' + (dl <= 3 ? '#7A5B33' : 'var(--ink)') + '">' + U.fmtShort(x.date) + '</span><span class="tiny" style="' + (dl <= 3 ? 'color:#7A5B33;font-weight:600' : 'color:var(--muted)') + '">' + (dl === 0 ? 'ma' : dl === 1 ? 'holnap' : dl + ' nap') + '</span></span></span>' + where(state, x) + '</button>';
       }).join('') + '</div>';
     }
-    if (out.length) h += listSection('Már kapható', out);
+    if (out.length) h += listSection('Már elérhető', out);
     if (any.length) h += listSection('Bármikor', any);
     if (got.length) {
       h += '<button type="button" class="card between" style="border:0;width:100%" data-a="toggleGot"><span class="small muted">Megszerezve · ' + got.length + '</span>' + (ui.showGot ? I.up : I.down) + '</button>';
@@ -517,7 +572,7 @@
     return h;
     function listSection(title, arr) {
       return '<div class="sec" style="gap:12px">' + (title ? '<div class="label">' + title + '</div>' : '') + '<div class="card pad-s list">' + arr.map(function (x) {
-        return '<button type="button" class="drow" style="width:100%;border:0;background:none;text-align:left" data-a="open" data-s="treasure" data-id="' + x.id + '"><span class="dot" style="background:#A07845"></span><span class="grow" style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;' + (x.got ? 'color:var(--faint);text-decoration:line-through' : '') + '">' + esc(x.title) + '</span><span class="small muted">' + tLabel(x.type) + (x.seen ? ' · ' + esc(x.seen) : '') + (x.date ? ' · ' + U.fmtShort(x.date) : '') + '</span></span></button>';
+        return '<button type="button" class="drow" style="width:100%;border:0;background:none;text-align:left" data-a="open" data-s="treasure" data-id="' + x.id + '">' + tIcon(state, x.type, 30) + '<span class="grow" style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;' + (x.got ? 'color:var(--faint);text-decoration:line-through' : '') + '">' + esc(x.title) + '</span><span class="small muted">' + esc(tLabel(state, x.type)) + (x.buy ? ' · ' + esc(x.buy) : '') + (x.date ? ' · ' + U.fmtShort(x.date) : '') + '</span></span></button>';
       }).join('') + '</div></div>';
     }
   }
@@ -627,6 +682,25 @@
   };
   var SHEETS = {};
 
+  function notifyCard(state, ui) {
+    var n = state.settings.notify || {};
+    var h = '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="frow"><div><div class="label">Értesítések</div><div class="small muted" style="margin-top:4px">Push az eseményekről és határidőkről</div></div>' + sw(!!n.on, 'data-a="notifyToggle"', 'Értesítések') + '</div>';
+    if (!n.on) return h + '<p class="help" style="font-size:14px">Az időponthoz kötött eseményekről és feladatokról, valamint a határidőkről a telefonodra küldök értesítést – akkor is, ha Callan be van zárva. Ehhez az ingyenes ntfy appra van szükség.</p></div>';
+    var link = 'ntfy://ntfy.sh/' + n.topic + '?display=Callan';
+    h += '<div class="steps">' +
+      '<div class="step"><span class="step-n">1</span><div class="grow"><div style="font-weight:600">Telepítsd az ntfy appot</div><a class="btn-link" style="padding-left:0" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Megnyitás a Google Playen</a></div></div>' +
+      '<div class="step"><span class="step-n">2</span><div class="grow"><div style="font-weight:600">Kapcsold össze Callannal</div><a class="btn sm" style="margin-top:8px;text-decoration:none" href="' + link + '">Feliratkozás az ntfy appban</a>' +
+        '<p class="help" style="margin-top:8px">Ha nem nyílik meg: az ntfy appban a + gombbal add hozzá ezt a témát:</p><div class="row" style="margin-top:6px"><code class="topic">' + esc(n.topic) + '</code><button type="button" class="btn-white" style="background:var(--field)" data-a="notifyCopy">Másolás</button></div></div></div>' +
+      '<div class="step"><span class="step-n">3</span><div class="grow"><div style="font-weight:600">Próbáld ki</div><button type="button" class="btn-soft" style="margin-top:8px" data-a="notifyTest">Próbaértesítés küldése</button></div></div>' +
+      '</div>';
+    var pend = CA.notify.pending(state);
+    h += '<p class="help">' + (n.lastError ? '<span style="color:#8A4B3A">Legutóbb nem értem el az értesítő szolgáltatást. Ha lesz internet, újrapróbálom.</span>' : (n.lastSync ? pend + ' emlékeztető beütemezve a következő 3 napra · frissítve ' + (function (d) { return U.toHM(d.getHours() * 60 + d.getMinutes()); })(new Date(n.lastSync)) : 'Még nem frissítettem.')) + '</p>' +
+      '<button type="button" class="btn-link" style="align-self:flex-start;padding-left:0" data-a="notifySync">Frissítés most</button>' +
+      '<p class="help">Tipp: az ntfy appban a Callan témánál kapcsold be az <b>Azonnali kézbesítést</b> (Instant delivery), különben az értesítések késhetnek.</p>' +
+      '<p class="help">Az ntfy legfeljebb 3 nappal előre fogad emlékeztetőt, ezért mindig a következő 3 napot töltöm fel, amikor megnyitod az appot. Ha pár napig nem nézel be, szólok. Az emlékeztetők címe az ntfy.sh szerverén át jut a telefonodra; a témanév a kulcs hozzájuk, ne oszd meg.</p>';
+    return h + '</div>';
+  }
+
   SHEETS.settings = function (state, ui) {
     var st = state.settings;
     function trow(label, key) { return '<div class="frow"><label for="st-' + key + '">' + label + '</label><input id="st-' + key + '" type="time" class="field sm" value="' + esc(st[key]) + '" data-change="setting" data-k="' + key + '"></div>'; }
@@ -635,7 +709,7 @@
       '<div class="frow"><label for="st-wd">Mérlegelés napja</label><select id="st-wd" class="field" style="width:150px" data-change="setting" data-k="weighDay">' + U.DAYS.map(function (d, i) { return '<option value="' + i + '"' + (i === st.weighDay ? ' selected' : '') + '>' + d + '</option>'; }).join('') + '</select></div>' +
       '<p class="help">A változás holnaptól érvényes, a mai, már összeállított napot nem rendezi át.</p></div>';
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Kategóriák</div>' + state.categories.map(function (c) {
-      return '<div style="display:flex;flex-direction:column;gap:10px;padding-bottom:6px"><div class="row"><span class="dot" style="background:' + c.color + ';width:14px;height:14px"></span><label for="cat-' + c.id + '" class="hidden-label">Kategória neve</label><input id="cat-' + c.id + '" class="field" value="' + esc(c.name) + '" data-change="catName" data-id="' + c.id + '"></div>' +
+      return '<div style="display:flex;flex-direction:column;gap:10px;padding-bottom:6px"><div class="row"><button type="button" class="tl-ico" style="border:0;width:44px;height:44px;border-radius:14px;color:' + c.color + ';background:' + U.hexA(c.color, .16) + '" data-a="open" data-s="catIcon" data-id="' + c.id + '" aria-label="Ikon: ' + esc(c.name) + '">' + catIconSvg(state, c.id, 22) + '</button><label for="cat-' + c.id + '" class="hidden-label">Kategória neve</label><input id="cat-' + c.id + '" class="field" value="' + esc(c.name) + '" data-change="catName" data-id="' + c.id + '"></div>' +
         '<div class="chips" style="gap:6px">' + CA.store.PALETTE.map(function (col) { return '<button type="button" aria-label="Szín ' + col + '" data-a="catColor" data-id="' + c.id + '" data-c="' + col + '" style="width:28px;height:28px;border-radius:50%;border:' + (col === c.color ? '3px solid var(--ink)' : '0') + ';background:' + col + '"></button>'; }).join('') + '</div></div>';
     }).join('') + '<button type="button" class="btn-soft" style="align-self:flex-start" data-a="open" data-s="newcat">' + I.plus + 'Új kategória</button></div>';
     var cy = st.cycle || {}, lastStart = (state.periods || []).slice().sort().pop() || '', avg = Sch.cycleAvg(state), nxt = Sch.cycleNext(state);
@@ -649,11 +723,12 @@
         '<p class="help">Ha elkezdődik, a Naptárban az adott napra koppintva rögzítheted; a becslés onnantól ehhez igazodik. Ez a megadott hosszakból számolt becslés, nem orvosi előrejelzés.</p>';
     }
     h += '</div>';
+    h += notifyCard(state, ui);
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Biztonsági mentés</div><p class="help" style="font-size:14px">Az adataid ezen a telefonon vannak. A mentés egy fájl, amit a megosztás menüből a Google Drive-ra küldhetsz; telefoncserénél ebből állítod vissza.</p>' +
       '<p class="help">' + (st.lastBackup ? 'Utolsó mentés: ' + U.fmtDate(st.lastBackup) : 'Még nem készült mentés.') + ' · ' + (ui.persisted ? 'A tárolás tartós.' : 'A böngésző szükség esetén törölheti az adatokat — a rendszeres mentés ezért fontos.') + '</p>' +
       '<button type="button" class="btn" data-a="backup">Mentés most</button>' +
       '<label class="btn" style="background:var(--field);color:var(--ink)" for="imp">Visszaállítás fájlból</label><input id="imp" type="file" accept=".txt,.json,text/plain,application/json" class="hidden-label" data-change="import"></div>';
-    h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="label">Az appról</div><p class="help" style="font-size:14px">Callan · ' + CA.VERSION + '</p><p class="help">Időzített értesítések egy későbbi verzióban jönnek. Addig Callan az app megnyitásakor szól.</p>' +
+    h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="label">Az appról</div><p class="help" style="font-size:14px">Callan · ' + CA.VERSION + '</p>' +
       '<button type="button" class="btn-danger" style="align-self:flex-start" data-a="resetAll">Minden adat törlése</button></div>';
     return h;
   };
@@ -661,8 +736,40 @@
   SHEETS.newcat = function (state, ui, s) {
     var d = s.draft;
     return sheetHead('Új kategória') + '<div class="card" style="display:flex;flex-direction:column;gap:14px"><label for="nc-name" class="label">Név</label><input id="nc-name" class="field title" placeholder="pl. Család" value="' + esc(d.name) + '" data-bind="name">' +
-      '<div class="label">Szín</div><div class="chips">' + CA.store.PALETTE.map(function (col) { return '<button type="button" aria-label="Szín ' + col + '" data-a="d" data-k="color" data-v="' + col + '" style="width:36px;height:36px;border-radius:50%;border:' + (col === d.color ? '3px solid var(--ink)' : '0') + ';background:' + col + '"></button>'; }).join('') + '</div></div>' +
+      '<div class="label">Szín</div><div class="chips">' + CA.store.PALETTE.map(function (col) { return '<button type="button" aria-label="Szín ' + col + '" data-a="d" data-k="color" data-v="' + col + '" style="width:36px;height:36px;border-radius:50%;border:' + (col === d.color ? '3px solid var(--ink)' : '0') + ';background:' + col + '"></button>'; }).join('') + '</div>' +
+      '<div class="label">Ikon</div>' + iconPick(d.icon, d.color, function (k) { return 'data-a="d" data-k="icon" data-v="' + k + '"'; }) + '</div>' +
       '<button type="button" class="btn block" data-a="saveCat">Kategória mentése</button>';
+  };
+
+  SHEETS.catIcon = function (state, ui, s) {
+    var c = Sch.cat(state, s.id);
+    if (!c) return sheetHead('Ikon');
+    return sheetHead(esc(c.name)) + '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Válassz ikont</div>' +
+      iconPick(c.icon, c.color, function (k) { return 'data-a="catIconSet" data-id="' + c.id + '" data-k="' + k + '"'; }) + '</div>';
+  };
+
+  SHEETS.swap = function (state, ui, s) {
+    var day = state.days[s.date], it = day && day.items.find(function (i) { return i.id === s.id; });
+    if (!it) return sheetHead('Helyette') + '<div class="card"><p class="help">Ez a tétel már nincs ezen a napon.</p></div>';
+    var o = Sch.swapOptions(state, s.date, s.id);
+    var slot = U.toHM(it.start) + '–' + U.toHM(it.end);
+    var h = sheetHead('Helyette');
+    h += say('beszel', esc(it.title) + ' helyett mi legyen ' + slot + ' között?');
+    h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><label for="sw-new" class="label">Valami más</label><div class="row"><input id="sw-new" class="field" placeholder="pl. Bevásárlás"><button type="button" class="btn" style="height:48px;border-radius:14px;flex:0 0 auto" data-a="swapNew" data-date="' + s.date + '" data-id="' + it.id + '">Ez lesz</button></div></div>';
+    function opt(kind, x, title, meta, catId) {
+      return '<button type="button" class="drow" style="width:100%;border:0;background:none;text-align:left" data-a="swapTo" data-date="' + s.date + '" data-id="' + it.id + '" data-kind="' + kind + '" data-ref="' + x.id + '">' + tlIco(state, { catId: catId }) +
+        '<span class="grow" style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14.5px;font-weight:600">' + esc(title) + '</span><span class="small muted">' + meta + '</span></span>' + I.right + '</button>';
+    }
+    if (o.acts.length) h += '<div class="sec"><div class="label">Szokások és tevékenységek</div><div class="card pad-s list">' + o.acts.map(function (a) {
+      var p = Sch.proj(state, a.projectId);
+      return opt('activity', a, a.title, (p && p.name !== a.title ? esc(p.name) + ' · ' : '') + (a.habit ? 'szokás' : Sch.describe(a)), p ? p.catId : null);
+    }).join('') + '</div></div>';
+    if (o.tasks.length) h += '<div class="sec"><div class="label">Feladatok</div><div class="card pad-s list">' + o.tasks.map(function (t) {
+      var meta = t.mode === 'due' ? 'határidő ' + U.fmtShort(t.due) + ' · még ' + hrs(Sch.taskRemaining(t)) : (t.date ? U.relDay(t.date) : 'nincs napja') + (t.est ? ' · ' + U.dur(t.est) : '');
+      return opt('task', t, t.title, meta, Sch.taskCat(state, t));
+    }).join('') + '</div></div>';
+    h += '<p class="help">A választott tétel ugyanebbe az idősávba kerül. ' + (it.kind === 'task' ? 'Az eredeti feladat holnapra kerül (határidősnél a maradék újraoszlik).' : 'Az eredeti ma kimarad, a sorozatát nem töri meg.') + '</p>';
+    return h;
   };
 
   SHEETS.item = function (state, ui, s) {
@@ -674,6 +781,7 @@
       (it.conflict ? '<p class="help" style="color:#8A4B3A">Ütközik ezzel: ' + esc(it.conflictWith) + '.</p>' : '') + '</div>';
     if (info.fixed) {
       h += '<button type="button" class="btn block" style="background:' + (it.done ? 'var(--field);color:var(--ink)' : col) + '" data-a="done" data-date="' + s.date + '" data-id="' + it.id + '">' + (it.done ? 'Mégsem kész' : 'Kész') + '</button>';
+      if (!it.done && it.start != null && (it.kind === 'activity' || it.kind === 'task')) h += '<button type="button" class="btn block" style="background:var(--card);color:var(--ink);box-shadow:var(--shadow)" data-a="open" data-s="swap" data-date="' + s.date + '" data-id="' + it.id + '">Helyette mást…</button>';
       if (it.kind === 'activity' || it.kind === 'task') h += '<div class="card frow"><div><div style="font-weight:600;font-size:15px">A mai három dolog egyike</div><div class="small muted">Legfeljebb három lehet</div></div>' + sw(inTop, 'data-a="star" data-date="' + s.date + '" data-id="' + it.id + '"', 'Fő dolog') + '</div>';
     }
     if (it.kind === 'activity') {
@@ -705,7 +813,7 @@
     if (!due) {
       h += '<p class="help">Egy konkrét napon intézed el. Időpont nélkül szabad helyet keresek neki az idővonalon.</p>' +
         '<label for="e-date" class="label">Melyik napon?</label><input id="e-date" type="date" class="field" value="' + esc(d.date) + '" data-bind="date">' +
-        '<div class="frow"><label for="e-time">Kezdés (nem kötelező)</label><input id="e-time" type="time" class="field sm" value="' + esc(d.time) + '" data-bind="time"></div>' +
+        '<div class="frow"><label for="e-time">Kezdés (nem kötelező)</label><input id="e-time" type="time" class="field sm" value="' + esc(d.time) + '" data-bind="time" data-rerender="1"></div>' +
         '<p class="help">Nap nélkül a vasárnapi heti tervezésnél osztod be.</p>';
     } else {
       h += '<p class="help">Hosszabb munka: a rászánt időt felosztom a határidőig hátralévő napokra, és beteszem az idővonalra.</p>' +
@@ -724,6 +832,7 @@
       }).join('') + '</div>';
       if (d.spent) h += '<p class="help">Eddig elvégezve: ' + hrs(d.spent) + '.</p>';
     }
+    h += '<div style="height:1px;background:var(--line)"></div>' + remindField(state, 'task', d);
     h += '</div>';
     if (due) {
       var est = estMinutes(d.estH);
@@ -754,6 +863,7 @@
         '<div class="frow"><span class="flabel">Egész napos</span>' + sw(d.allDay, 'data-a="dToggle" data-k="allDay"', 'Egész napos') + '</div>' +
         (d.allDay ? '' : '<div class="frow"><label for="e-start">Kezdés</label><input id="e-start" type="time" class="field sm" value="' + esc(d.start) + '" data-bind="start" data-rerender="1"></div><div class="frow"><label for="e-end">Vége</label><input id="e-end" type="time" class="field sm" value="' + esc(d.end) + '" data-bind="end" data-rerender="1"></div>' +
           '<div class="frow"><label for="e-travel">Odaút előtte (perc)</label><input id="e-travel" class="field sm" inputmode="numeric" value="' + esc(d.travel || '') + '" placeholder="0" data-bind="travel" data-rerender="1"></div><p class="help">Az idővonalon a kezdés előtt ezt az időt is lefoglalja.</p>') + '</div>';
+      h += '<div class="card" style="display:flex;flex-direction:column;gap:10px">' + remindField(state, 'event', d) + (d.travel > 0 && !d.allDay ? '<p class="help">Az odaút miatt az indulás időpontjához igazítom.</p>' : '') + '</div>';
     } else h += taskFields(state, d);
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Kategória</div>' + catChips(state, d.catId, function (id) { return 'data-a="d" data-k="catId" data-v="' + id + '"'; }, true) +
       '<label for="e-proj" class="label">Projekt</label><select id="e-proj" class="field" data-bind="projectId" data-rerender="1">' + projOptions(state, d.projectId) + '</select><p class="help">Nem kötelező. Ha egy projekthez rendeled, annak a listájában is megjelenik.</p></div>';
@@ -919,17 +1029,41 @@
   };
 
   SHEETS.treasure = function (state, ui, s) {
-    var d = s.draft;
+    var d = s.draft, k = TKINDS[tcat(state, d.type).kind] || TKINDS.product;
     var h = sheetHead(d.id ? 'Kincs' : 'Új kincs');
     h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="t-title" class="label">Mi az?</label><input id="t-title" class="field title" value="' + esc(d.title) + '" data-bind="title" placeholder="pl. Egy várva várt regény">' +
-      '<div class="chips">' + TTYPES.map(function (ty) { var on = d.type === ty[0]; return '<button type="button" class="chip ' + (on ? 'dark' : '') + '" aria-pressed="' + on + '" data-a="d" data-k="type" data-v="' + ty[0] + '">' + ty[1] + '</button>'; }).join('') + '</div></div>';
-    h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="t-seen" class="label">Hol láttam?</label><input id="t-seen" class="field" value="' + esc(d.seen) + '" data-bind="seen" placeholder="pl. a kiadó Instagramján">' +
-      '<label for="t-buy" class="label">Hol kapható?</label><input id="t-buy" class="field" value="' + esc(d.buy) + '" data-bind="buy" placeholder="pl. Libri, előrendelés">' +
+      '<div class="chips">' + state.treasureCats.map(function (c) { var on = d.type === c.id; return '<button type="button" class="chip ' + (on ? 'dark' : '') + '" aria-pressed="' + on + '" data-a="d" data-k="type" data-v="' + c.id + '">' + esc(c.name) + '</button>'; }).join('') +
+      '<button type="button" class="chip ghost" data-a="open" data-s="tcat" data-target="draft">' + I.plus + 'Új</button></div></div>';
+    h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="t-buy" class="label">' + k.where + '</label><input id="t-buy" class="field" value="' + esc(d.buy) + '" data-bind="buy" placeholder="' + k.ph + '">' +
       '<label for="t-link" class="label">Link</label><input id="t-link" class="field" inputmode="url" value="' + esc(d.link) + '" data-bind="link" placeholder="https://…">' +
-      (d.link && /^https?:\/\//.test(d.link) ? '<a href="' + esc(d.link) + '" target="_blank" rel="noopener" class="btn-link" style="align-self:flex-start">Link megnyitása</a>' : '') + '</div>';
-    h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="t-date" class="label">Megjelenés napja</label><input id="t-date" type="date" class="field" value="' + esc(d.date) + '" data-bind="date"><p class="help">Ha megadod, aznap a naptárban és a Ma képernyőn is szólok.</p></div>';
+      (d.link && /^https?:\/\//.test(d.link) ? '<a href="' + esc(d.link) + '" target="_blank" rel="noopener" class="btn-link" style="align-self:flex-start">Link megnyitása</a>' : '') +
+      (d.note ? '<label for="t-note" class="label">Megjegyzés</label><textarea id="t-note" class="field" rows="2" data-bind="note">' + esc(d.note) + '</textarea>' : '') + '</div>';
+    h += '<div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="t-date" class="label">' + k.date + '</label><input id="t-date" type="date" class="field" value="' + esc(d.date) + '" data-bind="date"><p class="help">Ha megadod, aznap a naptárban és a Ma képernyőn is szólok.</p></div>';
     if (d.id) h += '<div class="card frow"><span style="font-weight:600;font-size:15px">Megszereztem</span>' + sw(d.got, 'data-a="dToggle" data-k="got"', 'Megszereztem') + '</div>';
     h += '<button type="button" class="btn block" data-a="saveTreasure">Mentés</button>' + (d.id ? '<button type="button" class="btn-danger" style="align-self:center" data-a="delTreasure">Törlés</button>' : '');
+    return h;
+  };
+
+  SHEETS.tcats = function (state, ui) {
+    var h = sheetHead('Kincs-kategóriák');
+    h += '<div class="card pad-s list">' + state.treasureCats.map(function (c) {
+      var n = state.treasures.filter(function (x) { return x.type === c.id; }).length;
+      return '<button type="button" class="drow" style="width:100%;border:0;background:none;text-align:left" data-a="open" data-s="tcat" data-id="' + c.id + '">' + tIcon(state, c.id, 36) +
+        '<span class="grow" style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">' + esc(c.name) + '</span><span class="small muted">' + (TKINDS[c.kind] || TKINDS.product).label + ' · ' + n + ' kincs</span></span>' + I.right + '</button>';
+    }).join('') + '</div>';
+    h += '<button type="button" class="btn block" data-a="open" data-s="tcat">' + I.plus + 'Új kategória</button>';
+    return h;
+  };
+
+  SHEETS.tcat = function (state, ui, s) {
+    var d = s.draft, k = TKINDS[d.kind];
+    var h = sheetHead(d.id ? 'Kategória' : 'Új kincs-kategória');
+    h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><label for="tc-name" class="label">Név</label><input id="tc-name" class="field title" value="' + esc(d.name) + '" data-bind="name" placeholder="pl. Beauty">' +
+      '<div class="label">Jelleg</div>' + seg([['product', 'Termék'], ['service', 'Szolgáltatás'], ['virtual', 'Virtuális']], d.kind, function (v) { return 'data-a="d" data-k="kind" data-v="' + v + '"'; }) +
+      '<p class="help">' + k.help + ' A kincseknél ezt kérdezem: „' + k.where + '”, „Link” és „' + k.date + '”.</p>' +
+      '<div class="label">Ikon</div>' + iconPick(d.icon, '#A07845', function (v) { return 'data-a="d" data-k="icon" data-v="' + v + '"'; }) + '</div>';
+    h += '<button type="button" class="btn block" data-a="saveTcat">Mentés</button>';
+    if (d.id && state.treasureCats.length > 1) h += '<button type="button" class="btn-danger" style="align-self:center" data-a="delTcat">Kategória törlése</button>';
     return h;
   };
 

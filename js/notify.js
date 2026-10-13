@@ -103,6 +103,19 @@
       var rr = +rv;
       add(seq, epoch(t.date, tm - rr), t.title, rr === 0 ? 'Most esedékes (' + hm(tm) + ').' : U.cap(rel(rr)) + ', ' + hm(tm) + '-kor esedékes.');
     });
+    // Öntözés: öntözős napokon reggel (ébredés + 30 perc). Ha ma esedékes és nincs kész, holnap reggel újra szól.
+    var w = st.water;
+    if (w && w.on && w.notify) {
+      var openToday = Sch.waterOn(state, today).filter(function (x) { return !x.done; });
+      for (var k = 0; k <= 3; k++) {
+        var day = U.addDays(today, k), list = k === 0 ? openToday.slice() : Sch.waterOn(state, day).filter(function (x) { return !x.done; });
+        var carried = k === 1 ? openToday.filter(function (x) { return !list.some(function (y) { return y.p.id === x.p.id; }); }) : [];
+        list = list.concat(carried);
+        if (!list.length) continue;
+        var names = list.map(function (x) { return x.p.name; }).join(', ');
+        add('w-' + day, epoch(day, wake + 30), 'Öntözés', 'Ma öntözni kell: ' + names + '.' + (carried.length ? ' (Tegnap óta esedékes.)' : ''), 3);
+      }
+    }
     return out;
   };
 
@@ -111,13 +124,13 @@
 
   function post(body) {
     // Fejléc nélküli kérés: a böngésző így nem küld előzetes CORS-kérést.
-    return fetch(HOST + '/', { method: 'POST', body: JSON.stringify(body) }).then(function (r) {
+    return fetch(HOST + '/', { method: 'POST', body: JSON.stringify(body), keepalive: true }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r;
     });
   }
   function del(topic, seq) {
-    return fetch(HOST + '/' + topic + '/' + seq, { method: 'DELETE' }).then(function (r) {
+    return fetch(HOST + '/' + topic + '/' + seq, { method: 'DELETE', keepalive: true }).then(function (r) {
       if (!r.ok && r.status !== 404) throw new Error('HTTP ' + r.status);
       return r;
     });
@@ -156,7 +169,7 @@
       Object.keys(want).forEach(function (seq) {
         var d = want[seq], g = sig(d);
         if (sent[seq] && sent[seq].sig === g) return;
-        jobs.push(function () { return post(payload(n.topic, d)).then(function () { sent[seq] = { at: d.at, sig: g }; changed = true; }); });
+        jobs.push(function () { return post(payload(n.topic, d)).then(function () { sent[seq] = { at: d.at, sig: g, title: d.title }; changed = true; }); });
       });
       Object.keys(sent).forEach(function (seq) {
         if (want[seq]) return;
@@ -172,14 +185,50 @@
       }
     }
     jobs = jobs.slice(0, 50); // a szerver egyszerre 60 kérést enged
-    running = jobs.reduce(function (p, job) { return p.then(job); }, Promise.resolve()).then(function () {
+    // Egyszerre indítjuk mindet (a szerver 60-at enged egyszerre), így ha közben bezárod az appot,
+    // a keepalive kérések akkor is kimennek.
+    var errors = [];
+    running = Promise.all(jobs.map(function (job) {
+      return Promise.resolve().then(job).catch(function (e) { errors.push((e && e.message) || 'hálózati hiba'); });
+    })).then(function () {
+      if (errors.length) { n.lastError = errors[0]; return { ok: false, changed: true, error: n.lastError }; }
       n.lastSync = Date.now(); n.lastError = null;
       return { ok: true, changed: changed || jobs.length > 0 };
-    }).catch(function (e) {
-      n.lastError = (e && e.message) || 'hálózati hiba';
-      return { ok: false, changed: true, error: n.lastError };
     }).then(function (r) { running = null; return r; });
     return running;
+  };
+
+  /* A helyi nyilvántartás: mit töltöttünk fel, mikorra. */
+  N.upcoming = function (state) {
+    var now = Math.floor(Date.now() / 1000), sent = state.notifySent || {};
+    return Object.keys(sent).filter(function (k) { return sent[k].at > now; })
+      .map(function (k) { return { seq: k, at: sent[k].at, title: sent[k].title || '' }; })
+      .sort(function (a, b) { return a.at - b.at; });
+  };
+  /* Lekérdezi az ntfy szervertől a témán várakozó és az elmúlt ~12 órában kiküldött üzeneteket. */
+  N.check = function (state) {
+    var n = state.settings.notify;
+    if (!n.topic) return Promise.reject(new Error('Nincs témanév.'));
+    return fetch(HOST + '/' + n.topic + '/json?poll=1&since=all&sched=1').then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    }).then(function (txt) {
+      var now = Math.floor(Date.now() / 1000), msgs = {}, deleted = {};
+      txt.split('\n').forEach(function (line) {
+        if (!line.trim()) return;
+        var m; try { m = JSON.parse(line); } catch (e) { return; }
+        if (m.event === 'message_delete' || m.event === 'message_clear') { if (m.sequence_id) deleted[m.sequence_id] = 1; return; }
+        if (m.event !== 'message') return;
+        var key = m.sequence_id || m.id;
+        if (!msgs[key] || msgs[key].time < m.time) msgs[key] = m;
+      });
+      var list = Object.keys(msgs).map(function (k) { return msgs[k]; }).filter(function (m) { return m.sequence_id !== 'callan-keepalive' && !deleted[m.sequence_id]; });
+      return {
+        at: Date.now(),
+        scheduled: list.filter(function (m) { return m.time > now; }).sort(function (a, b) { return a.time - b.time; }),
+        delivered: list.filter(function (m) { return m.time <= now; }).sort(function (a, b) { return b.time - a.time; })
+      };
+    });
   };
 
   N.pending = function (state) {

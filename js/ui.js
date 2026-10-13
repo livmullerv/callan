@@ -66,6 +66,7 @@
         ? '<path d="' + d + '" fill="#A76D5E"></path>'
         : '<path d="' + d + '" fill="#A76D5E" opacity="0.18"></path><path d="' + d + '" fill="none" stroke="#A76D5E" stroke-width="2.4" stroke-linejoin="round"></path>') + '</svg>';
     },
+    can: function (sz, col) { return '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" aria-hidden="true" style="color:' + (col || '#5B7C8A') + '"><path d="M5.5 10.5h9.5v7.5a2.5 2.5 0 0 1-2.5 2.5H8a2.5 2.5 0 0 1-2.5-2.5Z" fill="currentColor" opacity="0.22"></path><path d="M5.5 10.5h9.5v7.5a2.5 2.5 0 0 1-2.5 2.5H8a2.5 2.5 0 0 1-2.5-2.5ZM5.5 12.2H4.2a1.7 1.7 0 0 0-1.7 1.7v.6a1.7 1.7 0 0 0 1.7 1.7h1.3M7.5 10.5c0-2.2 1.3-3.5 3-3.5s3 1.3 3 3.5M15 15.5l4.8-5.3M18.2 8.7l3.1 2.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path><path d="M21.6 6.4v.01M19.6 5.6v.01M22.4 9v.01" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>'; },
     moon: svg(18, '<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" fill="currentColor" opacity="0.25"></path><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" ' + S + '></path>'),
     bulb: svg(18, '<path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3Z" ' + F + '></path><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3ZM9.5 19.5h5M10.5 22h3" ' + S + '></path>'),
     chest: svg(18, '<path d="M3.5 11h17v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z" ' + F + '></path><path d="M3.5 11V8.5A5.5 5.5 0 0 1 9 3h6a5.5 5.5 0 0 1 5.5 5.5V11M3.5 11h17v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2ZM10.5 11v3h3v-3" ' + S + '></path>'),
@@ -322,6 +323,8 @@
     h += '</div>';
 
     // Idővonal
+    var wr = waterRows(state, t);
+    if (wr) h += '<div class="sec" style="gap:10px">' + wr + '</div>';
     h += '<div class="sec"><div class="between"><div class="label">A napod</div><button type="button" class="btn-link" data-a="open" data-s="entry" data-mode="task" data-date="' + t + '">+ Feladat</button></div><div class="tl">';
     info.items.filter(function (i) { return i.allDay; }).forEach(function (it) { h += itemRow(state, t, info, it); });
     h += timelineRows(state, t, info, true);
@@ -374,6 +377,18 @@
     }
     return Sch.dayDots(state, d);
   }
+  function waterRows(state, d) {
+    var list = Sch.waterOn(state, d);
+    if (!list.length) return '';
+    var today = U.today();
+    return list.map(function (x) {
+      var txt = x.done ? 'Megöntözve: ' + esc(x.p.name) : (d === today ? (x.late ? esc(x.p.name) + ' · ' + x.late + ' napja esedékes' : 'Ma öntözni kell: ' + esc(x.p.name)) : 'Öntözés: ' + esc(x.p.name));
+      var btn = d !== today ? '' : (x.done ? '<button type="button" class="btn-white" data-a="waterUndo" data-id="' + x.p.id + '">Visszavonás</button>' : '<button type="button" class="btn-white" data-a="water" data-id="' + x.p.id + '">Megöntöztem</button>');
+      return '<div class="water-row' + (x.done ? ' done' : '') + '">' + I.can(20) + '<div class="grow small" style="color:#3F5A66">' + txt + '</div>' + btn + '</div>';
+    }).join('');
+  }
+  V.waterRows = waterRows;
+
   function cycleRow(state, d) {
     var c = state.settings.cycle;
     if (!c || !c.on) return '';
@@ -405,11 +420,12 @@
       var dots = out ? [] : calDots(state, d), gem = !out && Sch.releases(state, d).length, cyc = out ? null : Sch.cycleInfo(state, d);
       h += '<button type="button" class="cal-day' + (out ? ' out' : '') + (d === today ? ' today' : '') + (d === sel ? ' sel' : '') + '" data-a="calSel" data-d="' + d + '" aria-label="' + U.fmtLong(d) + '"' + (d === sel ? ' aria-current="date"' : '') + '>' +
         '<span class="cal-num">' + U.parse(d).getDate() + '</span><span class="cal-dots">' + dots.map(function (c) { return '<i style="background:' + Sch.catColor(state, c) + '"></i>'; }).join('') + '</span>' +
-        (gem ? '<span class="cal-gem">' + I.gem(11) + '</span>' : '') +
-        (cyc ? '<span class="cal-drop">' + I.drop(11, cyc.type === 'actual') + '</span>' : '') + '</button>';
+        (gem ? '<span class="cal-gem' + (!out && Sch.waterOn(state, d).length ? ' low' : '') + '">' + I.gem(11) + '</span>' : '') +
+        (cyc ? '<span class="cal-drop">' + I.drop(11, cyc.type === 'actual') + '</span>' : '') +
+        (!out && Sch.waterOn(state, d).length ? '<span class="cal-water">' + I.can(12) + '</span>' : '') + '</button>';
     }
     h += '</div></div>';
-    h += '<div class="legend">' + state.categories.map(function (c) { return '<span><i class="dot" style="background:' + c.color + '"></i>' + esc(c.name) + '</span>'; }).join('') + '<span>' + I.gem(12) + 'Megjelenés</span>' + (state.settings.cycle && state.settings.cycle.on ? '<span>' + I.drop(12, true) + 'Menstruáció</span><span>' + I.drop(12, false) + 'Várható</span>' : '') + '</div>';
+    h += '<div class="legend">' + state.categories.map(function (c) { return '<span><i class="dot" style="background:' + c.color + '"></i>' + esc(c.name) + '</span>'; }).join('') + '<span>' + I.gem(12) + 'Megjelenés</span>' + (state.settings.cycle && state.settings.cycle.on ? '<span>' + I.drop(12, true) + 'Menstruáció</span><span>' + I.drop(12, false) + 'Várható</span>' : '') + (state.settings.water && state.settings.water.on ? '<span>' + I.can(13) + 'Öntözés</span>' : '') + '</div>';
 
     // Kiválasztott nap
     var info = Sch.getDay(state, sel);
@@ -418,7 +434,7 @@
     if (unused) items = items.filter(function (i) { return i.kind === 'event'; });
     var tasks = unused ? Sch.tasksFor(state, sel) : [], rel = Sch.releases(state, sel);
     h += '<div class="sec"><div class="between"><h2 class="h2">' + U.fmtLong(sel) + '</h2><div class="small muted">' + (items.length + tasks.length) + ' tétel</div></div>';
-    h += cycleRow(state, sel);
+    h += cycleRow(state, sel) + waterRows(state, sel);
     rel.forEach(function (r) { h += releaseCard(state, r, sel === today); });
     if (!items.length && !tasks.length) h += '<div class="card"><div class="empty">' + (unused ? 'Ezen a napon még nem használtad az appot.' : 'Erre a napra nincs semmi betervezve.') + '<button type="button" class="btn-soft" data-a="open" data-s="entry" data-date="' + sel + '">' + I.plus + 'Esemény vagy feladat</button></div></div>';
     else {
@@ -682,6 +698,46 @@
   };
   var SHEETS = {};
 
+  function waterCard(state) {
+    var w = state.settings.water || { plants: [] };
+    var h = '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="frow"><div><div class="label">Öntözés</div><div class="small muted" style="margin-top:4px">Emlékeztető a Naptárban és a napod felett</div></div>' + sw(!!w.on, 'data-a="waterToggle"', 'Öntözés') + '</div>';
+    if (!w.on) return h + '</div>';
+    w.plants.forEach(function (p) {
+      var nx = Sch.waterNext(state, p);
+      h += '<div class="inset">' +
+        '<div class="row">' + I.can(22) + '<label for="wp-n-' + p.id + '" class="hidden-label">Név</label><input id="wp-n-' + p.id + '" class="field" style="background:#fff;font-weight:600" value="' + esc(p.name) + '" data-change="waterSet" data-id="' + p.id + '" data-k="name"></div>' +
+        '<div class="frow"><label for="wp-e-' + p.id + '">Hány naponta?</label><input id="wp-e-' + p.id + '" class="field sm" style="background:#fff" inputmode="numeric" value="' + esc(p.every) + '" data-change="waterSet" data-id="' + p.id + '" data-k="every"></div>' +
+        '<div class="frow"><label for="wp-l-' + p.id + '">Utoljára öntözve</label><input id="wp-l-' + p.id + '" type="date" class="field" style="width:170px;background:#fff" value="' + esc(p.last || '') + '" data-change="waterSet" data-id="' + p.id + '" data-k="last"></div>' +
+        '<div class="between"><span class="small muted">Következő: ' + (nx === U.today() ? 'ma' : U.fmtLong(nx)) + '</span>' + (w.plants.length > 1 ? '<button type="button" class="btn-danger" style="padding:4px 0" data-a="waterDel" data-id="' + p.id + '">Törlés</button>' : '') + '</div></div>';
+    });
+    h += '<button type="button" class="btn-soft" style="align-self:flex-start" data-a="waterAdd">' + I.plus + 'Másik növény</button>';
+    h += '<div class="frow"><div><div style="font-weight:600;font-size:15px">Reggeli értesítés</div><div class="small muted">Öntözős napokon, ébredés után fél órával</div></div>' + sw(!!w.notify, 'data-a="waterNotify"', 'Reggeli értesítés') + '</div>';
+    if (w.notify && !(state.settings.notify && state.settings.notify.on)) h += '<p class="help">Ehhez kapcsold be lent az Értesítéseket is.</p>';
+    return h + '<p class="help">Különböző növényeket külön is felvehetsz, saját gyakorisággal.</p></div>';
+  }
+
+  function whenTxt(sec) {
+    var d = new Date(sec * 1000), day = U.ymd(d);
+    return U.cap(U.relDay(day)) + ' ' + U.toHM(d.getHours() * 60 + d.getMinutes());
+  }
+  function upcomingList(state) {
+    var up = CA.notify.upcoming(state).slice(0, 8);
+    if (!up.length) return '';
+    return '<div class="inset" style="gap:8px"><div class="small" style="font-weight:600">Feltöltött emlékeztetők</div>' + up.map(function (x) {
+      return '<div class="between small"><span class="grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.title || '–') + '</span><span class="muted" style="flex:0 0 auto">' + whenTxt(x.at) + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function checkResult(c) {
+    if (!c) return '';
+    if (c.loading) return '<p class="help">Lekérdezem az ntfy szervert…</p>';
+    if (c.error) return '<p class="help" style="color:#8A4B3A">Nem értem el az ntfy szervert. Van internet?</p>';
+    function rows(arr) { return arr.slice(0, 8).map(function (m) { return '<div class="between small"><span class="grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.title || m.message || '–') + '</span><span class="muted" style="flex:0 0 auto">' + whenTxt(m.time) + '</span></div>'; }).join(''); }
+    return '<div class="inset" style="gap:8px"><div class="small" style="font-weight:600">Az ntfy szerverén</div>' +
+      '<div class="small muted">' + (c.scheduled.length ? c.scheduled.length + ' emlékeztető vár kiküldésre:' : 'Most nincs kiküldésre váró emlékeztető.') + '</div>' + rows(c.scheduled) +
+      '<div class="small muted" style="margin-top:6px">' + (c.delivered.length ? 'Az elmúlt órákban kiment:' : 'Az elmúlt kb. 12 órában nem ment ki üzenet.') + '</div>' + rows(c.delivered) +
+      (c.delivered.length ? '<p class="help" style="margin-top:6px">Ha valami kiment, de a telefonodon nem jelent meg, az a telefon oldalán akadt el: kapcsold be az ntfy-ban az Azonnali kézbesítést, és vedd ki az ntfy-t az akkumulátor-optimalizálás alól.</p>' : '') + '</div>';
+  }
+
   function notifyCard(state, ui) {
     var n = state.settings.notify || {};
     var h = '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="frow"><div><div class="label">Értesítések</div><div class="small muted" style="margin-top:4px">Push az eseményekről és határidőkről</div></div>' + sw(!!n.on, 'data-a="notifyToggle"', 'Értesítések') + '</div>';
@@ -695,7 +751,9 @@
       '</div>';
     var pend = CA.notify.pending(state);
     h += '<p class="help">' + (n.lastError ? '<span style="color:#8A4B3A">Legutóbb nem értem el az értesítő szolgáltatást. Ha lesz internet, újrapróbálom.</span>' : (n.lastSync ? pend + ' emlékeztető beütemezve a következő 3 napra · frissítve ' + (function (d) { return U.toHM(d.getHours() * 60 + d.getMinutes()); })(new Date(n.lastSync)) : 'Még nem frissítettem.')) + '</p>' +
-      '<button type="button" class="btn-link" style="align-self:flex-start;padding-left:0" data-a="notifySync">Frissítés most</button>' +
+      upcomingList(state) +
+      '<div class="chips"><button type="button" class="btn-white" style="background:var(--field)" data-a="notifySync">Frissítés most</button><button type="button" class="btn-white" style="background:var(--field)" data-a="notifyCheck">Ellenőrzés a szerveren</button></div>' +
+      checkResult(ui.notifyCheck) +
       '<p class="help">Tipp: az ntfy appban a Callan témánál kapcsold be az <b>Azonnali kézbesítést</b> (Instant delivery), különben az értesítések késhetnek.</p>' +
       '<p class="help">Az ntfy legfeljebb 3 nappal előre fogad emlékeztetőt, ezért mindig a következő 3 napot töltöm fel, amikor megnyitod az appot. Ha pár napig nem nézel be, szólok. Az emlékeztetők címe az ntfy.sh szerverén át jut a telefonodra; a témanév a kulcs hozzájuk, ne oszd meg.</p>';
     return h + '</div>';
@@ -719,10 +777,11 @@
         '<div class="frow"><label for="cy-len">Ciklus hossza (nap)</label><input id="cy-len" class="field sm" inputmode="numeric" value="' + esc(cy.len) + '" data-change="cycle" data-k="len"></div>' +
         '<div class="frow"><label for="cy-per">Menstruáció hossza (nap)</label><input id="cy-per" class="field sm" inputmode="numeric" value="' + esc(cy.period) + '" data-change="cycle" data-k="period"></div>' +
         (avg ? '<div class="frow"><span class="small muted">A rögzített ciklusaid átlaga: ' + avg + ' nap</span>' + (avg !== +cy.len ? '<button type="button" class="btn-link" data-a="cycleUseAvg" data-v="' + avg + '">Ezt használjuk</button>' : '') + '</div>' : '') +
-        (nxt ? '<p class="help">Következő várható kezdet: ' + U.fmtLong(nxt) + '.</p>' : '<p class="help">Add meg az utolsó kezdet dátumát, és onnan számolom a következőket.</p>') +
+        (nxt ? '<p class="help">Következő várható kezdet: ' + U.fmtLong(nxt) + '</p>' : '<p class="help">Add meg az utolsó kezdet dátumát, és onnan számolom a következőket.</p>') +
         '<p class="help">Ha elkezdődik, a Naptárban az adott napra koppintva rögzítheted; a becslés onnantól ehhez igazodik. Ez a megadott hosszakból számolt becslés, nem orvosi előrejelzés.</p>';
     }
     h += '</div>';
+    h += waterCard(state);
     h += notifyCard(state, ui);
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Biztonsági mentés</div><p class="help" style="font-size:14px">Az adataid ezen a telefonon vannak. A mentés egy fájl, amit a megosztás menüből a Google Drive-ra küldhetsz; telefoncserénél ebből állítod vissza.</p>' +
       '<p class="help">' + (st.lastBackup ? 'Utolsó mentés: ' + U.fmtDate(st.lastBackup) : 'Még nem készült mentés.') + ' · ' + (ui.persisted ? 'A tárolás tartós.' : 'A böngésző szükség esetén törölheti az adatokat — a rendszeres mentés ezért fontos.') + '</p>' +

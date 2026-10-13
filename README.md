@@ -39,6 +39,11 @@ Az adataid **a telefonodon** vannak, nem a GitHubon.
 
 ## Változások
 
+**1.3.0**
+- Értesítések: az emlékeztető mentés után azonnal feltöltődik, és akkor is kimegy, ha rögtön bezárod az appot (korábban 2,5 mp várakozás volt, közben bezárva elveszhetett).
+- Beállítások → Értesítések: látszik a feltöltött emlékeztetők listája, és az „Ellenőrzés a szerveren” gombbal megnézheted, mi vár kiküldésre és mi ment ki az elmúlt órákban.
+- Öntözés: Beállítások → Öntözés. Növényenként megadható, hány naponta kell öntözni. Öntözőkanna jelöli a napokat a Naptárban, a Ma képernyőn a beosztás felett jelenik meg „Megöntöztem” gombbal, és kérhető reggeli értesítés.
+
 **1.2.0**
 - Az idővonalon minden blokk elején a kategória ikonja áll. Kategóriánként 34 ikon közül lehet választani (Beállítások → Kategóriák → az ikonra koppintva).
 - „Helyette mást…”: a mai nap egy tételére koppintva ugyanabba az idősávba másik szokást, feladatot vagy egy új teendőt tehetsz. Az eredeti ma kimarad (sorozatot nem tör), a feladat holnapra kerül.

@@ -87,13 +87,15 @@
     ['metricLogs', 'days', 'overrides', 'notifySent'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
     s.settings = Object.assign(S.defaultSettings(), s.settings || {});
     s.settings.cycle = Object.assign({ on: false, len: 28, period: 5 }, s.settings.cycle || {});
+    s.settings.water = Object.assign({ on: false, notify: true, plants: [] }, s.settings.water || {});
+    if (!Array.isArray(s.settings.water.plants)) s.settings.water.plants = [];
     s.settings.notify = Object.assign({ on: false, topic: null, lastSync: null, lastError: null, keepaliveAt: 0 }, s.settings.notify || {});
     if (!s.treasureCats.length) s.treasureCats = S.defaultTreasureCats();
     return s;
   };
 
   S.defaultSettings = function () {
-    return { wake: '08:00', workStart: '09:00', workEnd: '18:00', lunch: '13:00', lunchLen: 45, screenCut: '21:00', weighDay: 6, lastBackup: null, cycle: { on: false, len: 28, period: 5 }, notify: { on: false, topic: null, lastSync: null, lastError: null, keepaliveAt: 0 } };
+    return { wake: '08:00', workStart: '09:00', workEnd: '18:00', lunch: '13:00', lunchLen: 45, screenCut: '21:00', weighDay: 6, lastBackup: null, cycle: { on: false, len: 28, period: 5 }, notify: { on: false, topic: null, lastSync: null, lastError: null, keepaliveAt: 0 }, water: { on: false, notify: true, plants: [] } };
   };
 
   S.defaultTreasureCats = function () {

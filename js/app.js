@@ -2,7 +2,7 @@
 (function () {
   var CA = window.CA = window.CA || {};
   var U = CA.util, Sch = CA.sched, Store = CA.store, V = CA.views;
-  CA.VERSION = '1.2.0';
+  CA.VERSION = '1.3.0';
   var ALL = [0, 1, 2, 3, 4, 5, 6];
 
   var state = null, root = null;
@@ -43,7 +43,13 @@
     clearTimeout(syncTimer);
     syncTimer = setTimeout(function () {
       CA.notify.sync(state).then(function (r) { if (r && r.changed) { Store.save(state); if (ui.sheet && ui.sheet.type === 'settings') render(); } });
-    }, ms == null ? 2500 : ms);
+    }, ms == null ? 600 : ms);
+  }
+  function syncNow() {
+    // Bezáráskor / háttérbe kerüléskor azonnal feltölti, ami még nem ment ki.
+    clearTimeout(syncTimer);
+    if (!state || !state.settings.notify || (!state.settings.notify.on && !Object.keys(state.notifySent || {}).length)) return;
+    CA.notify.sync(state).then(function () { Store.save(state); });
   }
   function commit() { Store.save(state); render(); syncSoon(); }
   var toastTimer = null;
@@ -257,7 +263,7 @@
   };
   A.taskDate = function (d) {
     var t = state.tasks.find(function (x) { return x.id === d.id; }); if (!t) return;
-    t.date = d.d; commit(); toast('Beosztva: ' + U.fmtLong(d.d) + '.');
+    t.date = d.d; commit(); toast('Beosztva: ' + U.fmtLong(d.d));
   };
   A.addTask = function (d) {
     var ti = document.getElementById('nt-title'), dt = document.getElementById('nt-date');
@@ -370,8 +376,42 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { toast('Témanév vágólapra másolva.'); }, function () { toast(t); });
     else toast(t);
   };
+  A.notifyCheck = function () {
+    ui.notifyCheck = { loading: true };
+    render();
+    CA.notify.check(state).then(function (r) { ui.notifyCheck = r; render(); })
+      .catch(function () { ui.notifyCheck = { error: true }; render(); });
+  };
   A.notifySync = function () {
     CA.notify.sync(state, { force: true }).then(function (r) { Store.save(state); render(); toast(r.ok ? 'Emlékeztetők frissítve.' : 'Nem értem el az értesítő szolgáltatást. Később újrapróbálom.'); });
+  };
+  function newPlant(name) { return { id: 'w_' + U.uid(), name: name || 'Virágok', every: 7, last: null, start: U.today(), log: [] }; }
+  A.waterToggle = function () {
+    var w = state.settings.water;
+    w.on = !w.on;
+    if (w.on && !w.plants.length) w.plants.push(newPlant('Virágok'));
+    commit();
+  };
+  A.waterNotify = function () { state.settings.water.notify = !state.settings.water.notify; commit(); };
+  A.waterAdd = function () { state.settings.water.plants.push(newPlant('Új növény')); commit(); };
+  A.waterDel = function (d) {
+    var w = state.settings.water, p = w.plants.find(function (x) { return x.id === d.id; });
+    if (!p || !confirm('Törlöd: ' + p.name + '?')) return;
+    w.plants = w.plants.filter(function (x) { return x.id !== d.id; }); commit();
+  };
+  A.water = function (d) {
+    var p = state.settings.water.plants.find(function (x) { return x.id === d.id; }); if (!p) return;
+    var t = U.today();
+    p.prevLast = p.last; p.last = t;
+    p.log = (p.log || []).filter(function (x) { return x !== t; }).concat([t]).slice(-60);
+    commit(); toast('Megöntözve. Legközelebb: ' + U.fmtLong(U.addDays(t, Math.max(1, parseInt(p.every, 10) || 7))));
+  };
+  A.waterUndo = function (d) {
+    var p = state.settings.water.plants.find(function (x) { return x.id === d.id; }); if (!p) return;
+    var t = U.today();
+    p.last = p.prevLast && p.prevLast !== t ? p.prevLast : null;
+    p.log = (p.log || []).filter(function (x) { return x !== t; });
+    commit();
   };
   A.cycleToggle = function () {
     var c = state.settings.cycle; c.on = !c.on; commit();
@@ -441,7 +481,7 @@
       Object.assign(ev, { title: d.title.trim(), date: d.date, start: d.allDay ? null : d.start, end: d.allDay ? null : endTxt, allDay: !!d.allDay, travel: parseInt(d.travel, 10) || 0, catId: d.catId || (p && p.catId) || null, projectId: d.projectId || null, note: d.note || '', remind: d.remind });
       if (!d.editId) state.events.push(ev);
       Object.keys(d.res || {}).forEach(function (id) { if (d.res[id]) Sch.resolve(state, d.date, id, d.res[id]); });
-      closeSheet(); commit(); toast(d.editId ? 'Esemény frissítve.' : 'Bekerült a naptárba: ' + U.fmtLong(d.date) + '.');
+      closeSheet(); commit(); toast(d.editId ? 'Esemény frissítve.' : 'Bekerült a naptárba: ' + U.fmtLong(d.date));
     } else {
       var est = V.estMinutes(d.estH), due = d.tmode === 'due';
       if (due && !d.due) { toast('Add meg a határidőt.'); return; }
@@ -580,6 +620,14 @@
     state.settings[k] = k === 'weighDay' ? parseInt(el.value, 10) : el.value;
     commit();
   };
+  CH.waterSet = function (el) {
+    var p = state.settings.water.plants.find(function (x) { return x.id === el.dataset.id; }); if (!p) return;
+    var k = el.dataset.k, v = el.value;
+    if (k === 'name') { if (!v.trim()) return; p.name = v.trim(); }
+    else if (k === 'every') { var n = parseInt(v, 10); if (!n) return; p.every = Math.max(1, Math.min(90, n)); }
+    else if (k === 'last') { p.last = v || null; if (v) p.log = (p.log || []).filter(function (x) { return x !== v; }).concat([v]).slice(-60); }
+    commit();
+  };
   CH.cycle = function (el) {
     var n = parseInt(el.value, 10);
     if (!n) return;
@@ -673,10 +721,10 @@
       setInterval(function () { syncSoon(0); }, 15 * 60000);
       syncSoon(1500);
       document.addEventListener('visibilitychange', function () {
-        if (document.hidden) Store.flush(state);
+        if (document.hidden) { Store.flush(state); syncNow(); }
         else { ensureToday(); if (!isTyping()) render(); syncSoon(800); }
       });
-      window.addEventListener('pagehide', function () { Store.flush(state); });
+      window.addEventListener('pagehide', function () { Store.flush(state); syncNow(); });
     });
   }
   CA.start = init;

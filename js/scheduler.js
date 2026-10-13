@@ -474,6 +474,36 @@
   };
   Sch.undated = function (state) { return state.tasks.filter(function (x) { return !x.done && (x.mode === 'due' ? !x.due : !x.date); }); };
 
+  /* ---------- Öntözés ---------- */
+  function waterBase(p, today) {
+    var next = p.last ? U.addDays(p.last, Math.max(1, p.every || 7)) : (p.start || today);
+    return next;
+  }
+  /* Esedékes növények egy adott napon. Ma: ami esedékes vagy lejárt, és még nincs megöntözve. */
+  Sch.waterOn = function (state, date) {
+    var w = state.settings.water;
+    if (!w || !w.on) return [];
+    var today = U.today(), out = [];
+    w.plants.forEach(function (p) {
+      var every = Math.max(1, parseInt(p.every, 10) || 7), next = waterBase(p, today);
+      if (date < today) { if ((p.log || []).indexOf(date) >= 0) out.push({ p: p, done: true }); return; }
+      if (date === today) {
+        if (p.last === today) out.push({ p: p, done: true });
+        else if (next <= today) out.push({ p: p, late: U.diffDays(next, today) });
+        return;
+      }
+      // Jövő: ha ma esedékes (vagy lejárt), úgy számolunk, mintha ma megöntöznéd.
+      var anchor = next <= today ? today : next;
+      var dd = U.diffDays(anchor, date);
+      if (dd % every === 0 && (anchor === today ? dd > 0 : dd >= 0)) out.push({ p: p });
+    });
+    return out;
+  };
+  Sch.waterNext = function (state, p) {
+    var today = U.today(), next = waterBase(p, today);
+    return next < today ? today : next;
+  };
+
   /* ---------- Ciklusnaptár ---------- */
   function cycleCfg(state) {
     var c = state.settings.cycle || {};

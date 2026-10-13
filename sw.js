@@ -1,6 +1,6 @@
 /* Callan service worker – offline működés és frissítések.
    FONTOS: minden új kiadásnál növeld a VERSION értékét, különben a telefon nem veszi észre a frissítést. */
-const VERSION = 'callan-1.2.0';
+const VERSION = 'callan-1.3.0';
 const FONTS = 'callan-fonts';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',

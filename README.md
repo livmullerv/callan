@@ -101,6 +101,13 @@ Claude a Google Drive-kapcsolatával új szövegfájlt hoz létre a **Callan pos
 
 ## Változások
 
+**1.5.0**
+- Asztali elrendezés: legalább 1000 px széles ablakban 2 vagy 3 képernyő látszik egymás mellett, mindegyik külön görgethető.
+- Lapozás a fejléc nyilaival vagy a ← → billentyűkkel, a képernyők csúszva haladnak. Egy fülre kattintva az a képernyő becsúszik a látható részbe.
+- Az oszlopok száma a fejlécben választható (2 vagy 3). A választást eszközönként megjegyzi.
+- A Beállítások és az űrlapok gépen középre nyíló ablakban jelennek meg. Az Esc gomb mindig bezárja őket.
+- A telefonos nézet változatlan.
+
 **1.4.0**
 - Szinkron telefon és gép között, valamint kapcsolat Claude-dal, a Google Drive-on keresztül, egy saját Apps Script közvetítővel. Tételenkénti háromutas összefésülés, offline szerkesztés után is.
 - Másik eszköz csatlakoztatása QR-kóddal; üres eszköz nem írja felül a felhőt; a felülírt adatok visszaállíthatók.

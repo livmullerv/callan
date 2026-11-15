@@ -2,7 +2,7 @@
 (function () {
   var CA = window.CA = window.CA || {};
   var U = CA.util, Sch = CA.sched, Store = CA.store, V = CA.views;
-  CA.VERSION = '1.4.0';
+  CA.VERSION = '1.5.0';
   var ALL = [0, 1, 2, 3, 4, 5, 6];
 
   var state = null, root = null;
@@ -16,18 +16,67 @@
   /* ---------- Kirajzolás ---------- */
   var lastSheetKey = '', lastTab = '';
   function sheetKey() { return ui.sheet ? ui.sheet.type + ':' + (ui.sheet.id || '') : ''; }
+  /* Asztali nézet: 2–3 képernyő egymás mellett, lapozható sávban. */
+  var DESK_MIN = 1000, PANE_MIN = 400, PANE_MAX = 560, GAP = 24, SIDE = 32;
+  var desk = { start: 0, lastStart: null, k: 1 };
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* nem baj */ } }
+  function deskInfo() {
+    var mm = window.matchMedia && window.matchMedia('(min-width: ' + DESK_MIN + 'px)');
+    if (!mm || !mm.matches) return null;
+    var W = document.documentElement.clientWidth || window.innerWidth;
+    var max = Math.max(2, Math.min(3, Math.floor((W - 2 * SIDE + GAP) / (PANE_MIN + GAP))));
+    var pref = parseInt(lsGet('callan.cols'), 10);
+    var k = pref >= 2 ? Math.min(pref, max) : max;
+    var pw = Math.min(PANE_MAX, Math.floor((W - 2 * SIDE - (k - 1) * GAP) / k));
+    var n = V.TABS.length, idx = V.TABS.indexOf(ui.tab);
+    var start = Math.max(0, Math.min(desk.start, n - k));
+    if (idx < start) start = idx; else if (idx >= start + k) start = idx - k + 1;
+    desk.start = start; desk.k = k;
+    return { k: k, max: max, pw: pw, start: start };
+  }
+  CA.deskInfo = deskInfo;
+
+  var lastSheetKey = '', lastTab = '';
+  function sheetKey() { return ui.sheet ? ui.sheet.type + ':' + (ui.sheet.id || '') : ''; }
   function render() {
     if (!state) return;
-    var sheetEl = root.querySelector('.sheet'), sTop = sheetEl ? sheetEl.scrollTop : 0;
+    var sheetEl = root.querySelector('.sheet'), sIn = root.querySelector('.sheet-in');
+    var sTop = sheetEl ? sheetEl.scrollTop : 0, sInTop = sIn ? sIn.scrollTop : 0;
     var y = window.scrollY;
+    var paneTops = {};
+    Array.prototype.forEach.call(root.querySelectorAll('.pane'), function (p) { paneTops[p.dataset.tab] = p.scrollTop; });
     var ae = document.activeElement, aid = ae && ae.id, sel = null;
     try { if (ae && ae.selectionStart != null) sel = [ae.selectionStart, ae.selectionEnd]; } catch (e) { sel = null; }
+    var dk = deskInfo();
+    root.classList.toggle('desk', !!dk);
+    if (dk) { root.style.setProperty('--pw', dk.pw + 'px'); root.style.setProperty('--gap', GAP + 'px'); root.style.setProperty('--k', dk.k); }
     Sch.beginPass();
-    try { root.innerHTML = V.screen(state, ui) + V.nav(ui) + (ui.sheet ? V.sheet(state, ui) : '') + V.toast(ui); } finally { Sch.endPass(); }
-    document.body.style.overflow = ui.sheet ? 'hidden' : '';
+    try {
+      root.innerHTML = (dk ? V.deskHead(ui, dk) + V.deskTrack(state, ui, dk) : V.screen(state, ui) + V.nav(ui)) +
+        (ui.sheet ? V.sheet(state, ui) : '') + V.toast(ui);
+    } finally { Sch.endPass(); }
+    document.body.style.overflow = ui.sheet || dk ? 'hidden' : '';
     var key = sheetKey();
-    if (ui.sheet && key === lastSheetKey) { var s2 = root.querySelector('.sheet'); if (s2) s2.scrollTop = sTop; }
-    if (ui.tab !== lastTab) window.scrollTo(0, 0); else window.scrollTo(0, y);
+    if (ui.sheet && key === lastSheetKey) {
+      var s2 = root.querySelector('.sheet'), s3 = root.querySelector('.sheet-in');
+      if (s2) s2.scrollTop = sTop;
+      if (s3) s3.scrollTop = sInTop;
+    }
+    if (dk) {
+      Array.prototype.forEach.call(root.querySelectorAll('.pane'), function (p) { if (paneTops[p.dataset.tab]) p.scrollTop = paneTops[p.dataset.tab]; });
+      var tr = root.querySelector('.dtrack');
+      var off = function (st) { return 'translateX(' + (-st * (dk.pw + GAP)) + 'px)'; };
+      if (desk.lastStart != null && desk.lastStart !== dk.start && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        tr.style.transition = 'none'; tr.style.transform = off(desk.lastStart);
+        void tr.offsetWidth;
+        tr.style.transition = ''; tr.style.transform = off(dk.start);
+      } else tr.style.transform = off(dk.start);
+      desk.lastStart = dk.start;
+    } else {
+      desk.lastStart = null;
+      if (ui.tab !== lastTab) window.scrollTo(0, 0); else window.scrollTo(0, y);
+    }
     lastSheetKey = key; lastTab = ui.tab;
     if (aid) {
       var el = document.getElementById(aid);
@@ -36,6 +85,16 @@
         if (sel && el.setSelectionRange) { try { el.setSelectionRange(sel[0], sel[1]); } catch (e) { /* nem szöveges mező */ } }
       }
     }
+  }
+  function deskMove(dir) {
+    var dk = deskInfo(); if (!dk) return;
+    var n = V.TABS.length, st = Math.max(0, Math.min(n - dk.k, dk.start + dir));
+    if (st === dk.start) return;
+    desk.start = st;
+    var idx = V.TABS.indexOf(ui.tab);
+    if (idx < st) ui.tab = V.TABS[st]; else if (idx >= st + dk.k) ui.tab = V.TABS[st + dk.k - 1];
+    if (ui.tab === 'cal' && !ui.cal.sel) ui.cal.sel = U.today();
+    render();
   }
   var syncTimer = null;
   function syncSoon(ms) {
@@ -212,6 +271,8 @@
 
   /* ---------- Műveletek ---------- */
   var A = {};
+  A.deskMove = function (d) { deskMove(Number(d.d)); };
+  A.deskCols = function (d) { lsSet('callan.cols', String(d.n)); render(); };
   A.tab = function (d) { ui.tab = d.t; closeAll(); if (d.t === 'cal' && !ui.cal.sel) ui.cal.sel = U.today(); render(); };
   A.open = function (d) { openSheet(d.s, d); };
   A.close = function () { closeSheet(); };
@@ -732,7 +793,30 @@
     });
     root.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('num-input')) e.target.blur();
-      if (e.key === 'Escape' && ui.sheet) closeSheet();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && ui.sheet) { closeSheet(); return; }
+      if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || ui.sheet || isTyping() || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (!root.classList.contains('desk')) return;
+      e.preventDefault();
+      deskMove(e.key === 'ArrowLeft' ? -1 : 1);
+    });
+    var rsT = null, wasDesk = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(rsT);
+      rsT = setTimeout(function () {
+        var dk = deskInfo();
+        if (dk || wasDesk) { if (!isTyping()) render(); }
+        wasDesk = !!dk;
+      }, 120);
+    });
+    // Asztalon a képernyőre kattintás azt teszi aktuálissá (a fejlécben kiemelve).
+    root.addEventListener('pointerdown', function (e) {
+      var p = e.target.closest && e.target.closest('.pane');
+      if (!p || p.dataset.tab === ui.tab) return;
+      ui.tab = p.dataset.tab;
+      Array.prototype.forEach.call(root.querySelectorAll('.pane'), function (x) { x.classList.toggle('cur', x === p); });
+      Array.prototype.forEach.call(root.querySelectorAll('.dpill'), function (b) { var on = b.dataset.t === ui.tab; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     });
   }
 
@@ -754,7 +838,8 @@
 
   function tick() {
     ensureToday();
-    if (!ui.sheet && ui.tab === 'ma' && !isTyping()) render();
+    var dk = deskInfo(), maVis = dk ? dk.start === 0 : ui.tab === 'ma';
+    if (!ui.sheet && maVis && !isTyping()) render();
   }
 
   function init() {

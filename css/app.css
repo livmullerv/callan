@@ -255,3 +255,30 @@ a.btn { display: inline-flex; }
 /* 1.4: szinkron */
 .qr { width: 220px; max-width: 100%; background: #fff; border-radius: 12px; padding: 6px; }
 .qr svg { width: 100%; height: auto; display: block; }
+
+/* ---------- Asztali elrendezés (széles képernyő): 2–3 képernyő egymás mellett ---------- */
+.app.desk { max-width: none; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.dhead { flex: 0 0 auto; background: var(--card); border-bottom: 1px solid #F0E5D7; padding: 10px 32px; }
+.dhead-in { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
+.dbrand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-variation-settings: 'SOFT' 60, 'WONK' 0; font-size: 21px; font-weight: 600; }
+.dtabs { display: flex; align-items: center; gap: 6px; }
+.dtabs .icon-btn[disabled] { opacity: .3; cursor: default; }
+.dpills { display: flex; gap: 4px; background: var(--track); border-radius: 999px; padding: 4px; }
+.dpill { height: 40px; border: 0; border-radius: 999px; background: transparent; padding: 0 16px 0 12px; display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 500; color: #7A6A5C; cursor: pointer; transition: background .2s, color .2s; }
+.dpill svg { width: 20px; height: 20px; }
+.dpill.vis { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(46, 33, 26, .08); }
+.dpill.on { color: var(--accent); font-weight: 600; }
+.dcols { justify-self: end; width: 200px; }
+.dcols .seg button { height: 34px; font-size: 12.5px; }
+.dview { flex: 1 1 auto; min-height: 0; overflow: hidden; width: calc(var(--k) * var(--pw) + (var(--k) - 1) * var(--gap)); margin: 0 auto; }
+.dtrack { height: 100%; display: flex; gap: var(--gap); transition: transform .38s cubic-bezier(.4, 0, .2, 1); will-change: transform; }
+.pane { flex: 0 0 var(--pw); width: var(--pw); height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #E6D8C6 transparent; border-radius: 0; position: relative; }
+.pane > .screen { padding: 26px 4px 48px; }
+.pane[inert] { opacity: .35; }
+.app.desk .nav { display: none; }
+.app.desk .toast { bottom: 28px; }
+/* Lapok középre nyíló ablakként */
+.app.desk .sheet { background: rgba(46, 33, 26, .32); display: flex; align-items: center; justify-content: center; padding: 32px; overflow: hidden; animation: fade .15s ease-out; }
+.app.desk .sheet-in { width: 560px; max-width: 100%; max-height: calc(100vh - 64px); overflow-y: auto; overscroll-behavior: contain; margin: 0; background: var(--bg); border-radius: 26px; padding: 20px 26px 32px; box-shadow: 0 24px 60px rgba(46, 33, 26, .28); animation: up .18s ease-out; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dtrack { transition: none; } }

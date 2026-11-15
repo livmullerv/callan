@@ -161,8 +161,31 @@
     var t = ui.toast;
     return '<div class="toast" role="status"><span>' + esc(t.text) + '</span>' + (t.a ? '<button type="button" data-a="' + t.a + '" data-id="' + esc(t.id || '') + '">' + esc(t.label) + '</button>' : '') + '</div>';
   };
-  V.screen = function (state, ui) {
-    return { ma: V.ma, cal: V.cal, proj: V.proj, notes: V.notes, res: V.res }[ui.tab](state, ui);
+  V.TABS = ['ma', 'cal', 'proj', 'notes', 'res'];
+  var SCREENS = { ma: function (s, u) { return V.ma(s, u); }, cal: function (s, u) { return V.cal(s, u); }, proj: function (s, u) { return V.proj(s, u); }, notes: function (s, u) { return V.notes(s, u); }, res: function (s, u) { return V.res(s, u); } };
+  V.screen = function (state, ui) { return SCREENS[ui.tab](state, ui); };
+
+  /* ---------- Asztali elrendezés: több képernyő egymás mellett ---------- */
+  V.deskHead = function (ui, dk) {
+    var names = { ma: 'Ma', cal: 'Naptár', proj: 'Projektek', notes: 'Jegyzetek', res: 'Eredmények' };
+    var h = '<header class="dhead"><div class="dhead-in">' +
+      '<div class="dbrand">' + C.svg('nyugodt', 34, true) + '<span>Callan</span></div>' +
+      '<div class="dtabs"><button type="button" class="icon-btn plain" data-a="deskMove" data-d="-1" aria-label="Balra"' + (dk.start <= 0 ? ' disabled' : '') + '>' + I.left + '</button>' +
+      '<div class="dpills">' + V.TABS.map(function (t, i) {
+        var vis = i >= dk.start && i < dk.start + dk.k, on = ui.tab === t;
+        return '<button type="button" class="dpill' + (vis ? ' vis' : '') + (on ? ' on' : '') + '" data-a="tab" data-t="' + t + '"' + (on ? ' aria-current="page"' : '') + '>' + I.nav[t] + '<span>' + names[t] + '</span></button>';
+      }).join('') + '</div>' +
+      '<button type="button" class="icon-btn plain" data-a="deskMove" data-d="1" aria-label="Jobbra"' + (dk.start + dk.k >= V.TABS.length ? ' disabled' : '') + '>' + I.right + '</button></div>' +
+      '<div class="dcols">' + (dk.max >= 3 ? '<div class="seg" style="grid-template-columns:1fr 1fr" role="group" aria-label="Egyszerre látható képernyők">' +
+        [2, 3].map(function (n) { return '<button type="button" class="' + (dk.k === n ? 'on' : '') + '" data-a="deskCols" data-n="' + n + '">' + n + ' oszlop</button>'; }).join('') + '</div>' : '') + '</div>' +
+      '</div></header>';
+    return h;
+  };
+  V.deskTrack = function (state, ui, dk) {
+    return '<div class="dview"><div class="dtrack">' + V.TABS.map(function (t, i) {
+      var vis = i >= dk.start && i < dk.start + dk.k;
+      return '<section class="pane' + (ui.tab === t ? ' cur' : '') + '" data-tab="' + t + '"' + (vis ? '' : ' inert aria-hidden="true"') + '>' + SCREENS[t](state, ui) + '</section>';
+    }).join('') + '</div></div>';
   };
 
   /* ---------- MA ---------- */

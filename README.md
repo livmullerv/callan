@@ -37,7 +37,75 @@ Az adataid **a telefonodon** vannak, nem a GitHubon.
 2. A `sw.js` elején a `VERSION` értéke minden kiadásnál nő — ezt a kapott fájlokban már átírva kapod.
 3. A telefonon az app következő megnyitásakor Callan szól, hogy új verzió érkezett → **Frissítés**. Az adataid megmaradnak.
 
+## Szinkron és Claude (telefon + gép + Claude ugyanazzal az adattal)
+
+Az adatok egy saját közvetítőn át a Google Drive-odra kerülnek, egy „Callan” mappába:
+
+- **Callan – adatok:** a teljes adat, ebből szinkronizál minden eszköz.
+- **Callan – áttekintés:** olvasható összefoglaló, ezt olvassa Claude.
+- **Callan postaláda:** ide ír Claude, Callan a következő szinkronnál beteszi a tételeket, és kitörli a fájlt.
+
+A közvetítő egy Google Apps Script program a saját Google-fiókodban (ingyenes, nem kell hozzá szerver). A `Code.gs` fájlt külön kapod, mert benne van a titkos kulcs. **Ne töltsd fel a GitHubra.**
+
+### 1. A közvetítő beállítása (gépen, egyszer, kb. 10 perc)
+
+1. Nyisd meg a **script.google.com** oldalt azzal a Google-fiókkal, amelyiknek a Drive-ját használni akarod, és kattints az **Új projekt** gombra.
+2. Bal fent nevezd át: **Callan közvetítő**.
+3. A `Code.gs` szerkesztőben töröld ki, ami ott van, és másold be a kapott `Code.gs` teljes tartalmát. Mentsd el (Ctrl+S).
+4. Fent a függvényválasztóban válaszd a **setup** függvényt, és nyomd meg a **Futtatás** gombot.
+   - Engedélyt kér a Drive-hoz: *Engedélyek áttekintése* → válaszd ki a fiókodat.
+   - Megjelenik a „A Google nem ellenőrizte ezt az alkalmazást” üzenet. Ez a saját programod, ezért ez rendben van: *Speciális* → *Ugrás a Callan közvetítő oldalra (nem biztonságos)* → *Engedélyezés*.
+   - Ezután a Drive-odon megjelenik a **Callan** mappa.
+5. Jobb fent: **Telepítés → Új telepítés**. A fogaskeréknél válaszd ezt: **Webalkalmazás**.
+   - Végrehajtás mint: **Én**
+   - Hozzáférés: **Bárki**. Erre azért van szükség, hogy Callan bejelentkezés nélkül elérje; a titkos kulcs védi.
+   - **Telepítés** → másold ki a **Webalkalmazás URL-jét** (`…/exec` a vége).
+
+### 2. Callan csatlakoztatása
+
+1. **Gépen:** nyisd meg Callant (a GitHub Pages címét) Chrome-ban vagy Edge-ben. A címsor jobb oldalán lévő telepítés ikonnal asztali appként is felteheted.
+2. **Beállítások → Szinkron és Claude:** a *Közvetítő címe* mezőbe a webalkalmazás URL-je kerül, a *Titkos kulcs* mezőbe a `Code.gs` elején lévő `SECRET` értéke. Ezután **Csatlakozás**.
+   - Mivel a gép még üres, nem tölt fel semmit. Mutat egy QR-kódot, és megvárja a telefont.
+3. **Telefonon:** olvasd be a QR-kódot a kamerával. Callan megnyílik, magától csatlakozik, és feltölti az adataidat.
+4. **Gépen:** pár percen belül magától letölti őket, vagy nyomd meg a **Megnézem újra** gombot.
+
+Innentől minden változás pár másodpercen belül felmegy, megnyitáskor és kétpercenként pedig lejön a másik eszköz változása. Ha ugyanazt a tételt mindkét helyen másképp szerkesztetted, annak az eszköznek a változata marad meg, amelyik később szinkronizál. Ha egy eszköz adatait a felhő adatai írják felül, Callan előtte elmenti a régieket, és a Beállításokban vissza lehet állítani őket.
+
+Ha később módosítani kell a `Code.gs`-t: **Telepítés → Telepítések kezelése → szerkesztés (ceruza) → Verzió: Új verzió**. Így megmarad ugyanaz az URL.
+
+### Claude-kapcsolat: a postaláda formátuma
+
+Claude a Google Drive-kapcsolatával új szövegfájlt hoz létre a **Callan postaláda** mappában (`text/plain`, Google Dokumentummá alakítás nélkül), ezzel a tartalommal:
+
+```json
+{
+  "callan": 1,
+  "from": "Claude",
+  "note": "Rövid megjegyzés, honnan jön (opcionális)",
+  "ops": [
+    { "op": "task", "title": "Árajánlat", "date": "2026-11-17", "time": "10:00", "est": 45, "project": "Tradevance" },
+    { "op": "task", "title": "Weboldal", "due": "2026-11-30", "hours": 10, "project": "Little Fires" },
+    { "op": "event", "title": "Fogorvos", "date": "2026-11-18", "start": "15:30", "end": "16:15", "travel": 20, "category": "Család", "note": "…" },
+    { "op": "event", "title": "Szülinap", "date": "2026-11-20", "allDay": true, "project": "MomLife" },
+    { "op": "idea", "title": "Cím", "body": "Szöveg", "project": "Regény" },
+    { "op": "treasure", "title": "Könyv címe", "category": "Könyv", "where": "Libri", "link": "https://…", "date": "2026-12-02" },
+    { "op": "project", "title": "Karácsony", "category": "Család", "kind": "collection" }
+  ]
+}
+```
+
+- A projekteket és kategóriákat név szerint keresi meg, kis- és nagybetűtől, valamint ékezettől függetlenül.
+- Feladatnál a `due` határidős feladatot jelent (a `hours` vagy az `est` percben adja meg a rászánt időt). `due` nélkül adott napi feladat lesz, `date` és opcionális `time` mezővel.
+- Eseménynél `start` nélkül egész napos lesz.
+- A sikeresen felvett tételeket és az esetleg kihagyottakat Callan a Ma képernyőn jelzi („Claude beírt … dolgot”).
+
 ## Változások
+
+**1.4.0**
+- Szinkron telefon és gép között, valamint kapcsolat Claude-dal, a Google Drive-on keresztül, egy saját Apps Script közvetítővel. Tételenkénti háromutas összefésülés, offline szerkesztés után is.
+- Másik eszköz csatlakoztatása QR-kóddal; üres eszköz nem írja felül a felhőt; a felülírt adatok visszaállíthatók.
+- Claude postaláda: feladat, esemény, ötlet, kincs és projekt felvétele; Callan jelzi, mi érkezett.
+- „Callan – áttekintés” fájl a Drive-on, hogy Claude lássa a terveidet.
 
 **1.3.0**
 - Értesítések: az emlékeztető mentés után azonnal feltöltődik, és akkor is kimegy, ha rögtön bezárod az appot (korábban 2,5 mp várakozás volt, közben bezárva elveszhetett).
@@ -62,3 +130,5 @@ Az adataid **a telefonodon** vannak, nem a GitHubon.
 - **Ne nevezd át a repót.** A tárolt adatok a címhez kötődnek, új címen az app üresen indul.
 - A Chrome-ban a webhelyadatok törlése az app adatait is törli — előtte ments.
 - A kód nyilvános, az adataid nem: azok sosem kerülnek fel a GitHubra.
+- A `Code.gs` (a közvetítő) titkos kulcsot tartalmaz, ezért ne tedd a GitHub-repóba.
+- A `js/vendor/qrcode.js` Kazuhiko Arase QR-kód könyvtára (MIT licenc).

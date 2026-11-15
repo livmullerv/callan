@@ -251,3 +251,7 @@ a.btn { display: inline-flex; }
 .cal-gem.low { top: 17px; }
 .water-row { display: flex; align-items: center; gap: 10px; background: rgba(91, 124, 138, .12); border-radius: 18px; padding: 10px 10px 10px 14px; }
 .water-row.done { opacity: .7; }
+
+/* 1.4: szinkron */
+.qr { width: 220px; max-width: 100%; background: #fff; border-radius: 12px; padding: 6px; }
+.qr svg { width: 100%; height: auto; display: block; }

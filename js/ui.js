@@ -289,6 +289,17 @@
     if (ui.update) h += say('nyugodt', 'Új verzióm érkezett. Frissítsek?', '<button type="button" class="btn-white" data-a="update">Frissítés</button>');
     var msg = maMessage(state, info, now);
     h += say(msg.mood, msg.text, msg.act);
+    var news = CA.sync && CA.sync.cfg() ? CA.sync.news(state) : [];
+    if (news.length) {
+      var items = [], skipped = [];
+      news.forEach(function (e) { items = items.concat(e.done); skipped = skipped.concat(e.skipped); });
+      var note = news.map(function (e) { return e.note; }).filter(Boolean).join(' ');
+      h += say('buszke', 'Claude beírt ' + (items.length === 1 ? 'egy dolgot' : items.length + ' dolgot') + ':' +
+        '<span style="display:block;font-family:var(--sans);font-size:14px;margin-top:6px;line-height:1.5">' + items.map(function (x) { return '· ' + esc(x); }).join('<br>') + '</span>' +
+        (note ? '<span style="display:block;font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:6px">' + esc(note) + '</span>' : '') +
+        (skipped.length ? '<span style="display:block;font-family:var(--sans);font-size:13px;color:#8A4B3A;margin-top:6px">Nem tudtam felvenni: ' + esc(skipped.join(', ')) + '</span>' : ''),
+        '<button type="button" class="btn-white" data-a="newsOk">Rendben</button>');
+    }
 
     // Biztonsági mentés
     var lb = st.lastBackup, created = (state.createdAt || '').slice(0, 10);
@@ -698,6 +709,48 @@
   };
   var SHEETS = {};
 
+  function cloudCard(state, ui) {
+    var c = CA.sync.cfg(), u = ui.cloud || {};
+    var h = '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div><div class="label">Szinkron és Claude</div><div class="small muted" style="margin-top:4px">Ugyanaz az adat telefonon és gépen; Claude is olvashatja és írhat bele</div></div>';
+    if (u.busy) return h + '<p class="help">Kapcsolódom…</p></div>';
+    function qrBlock() {
+      var link = CA.sync.link(), svgq = '';
+      try { var q = window.qrcode(0, 'L'); q.addData(link); q.make(); svgq = q.createSvgTag({ cellSize: 3, margin: 3, scalable: true }); } catch (e) { svgq = ''; }
+      return '<div class="inset" style="align-items:center;text-align:center"><div class="small" style="font-weight:600">Olvasd be a telefonod kamerájával</div>' +
+        (svgq ? '<div class="qr">' + svgq + '</div>' : '') +
+        '<p class="help">A kód Callant nyitja meg a telefonon, és magától csatlakozik. A titkos kulcs is benne van, ezért senkinek ne mutasd meg.</p>' +
+        '<button type="button" class="btn-white" style="background:#fff" data-a="cloudCopy">Link másolása helyette</button></div>';
+    }
+    if (c && c.connected) {
+      var when = c.lastSync ? (function (d) { return U.relDay(U.ymd(d)) + ' ' + U.toHM(d.getHours() * 60 + d.getMinutes()); })(new Date(c.lastSync)) : 'még nem';
+      h += '<div class="frow"><span class="small">' + (c.lastError ? '<span style="color:#8A4B3A">Legutóbb nem sikerült: ' + esc(c.lastError) + '</span>' : 'Szinkronizálva: ' + when) + '</span></div>' +
+        '<div class="frow"><label for="cl-dev">Ennek az eszköznek a neve</label><input id="cl-dev" class="field" style="width:150px;text-align:center" value="' + esc(c.device || '') + '" data-change="cloudDevice"></div>' +
+        '<div class="chips"><button type="button" class="btn-white" style="background:var(--field)" data-a="cloudSync">Szinkron most</button><button type="button" class="btn-white" style="background:var(--field)" data-a="cloudQR">' + (ui.cloudQR ? 'Kód elrejtése' : 'Másik eszköz csatlakoztatása') + '</button><button type="button" class="btn-white" style="background:var(--field);color:#8A4B3A" data-a="cloudOff">Leválasztás</button></div>' +
+        (ui.cloudQR ? qrBlock() : '') +
+        (ui.cloudBackup ? '<button type="button" class="btn-link" style="align-self:flex-start;padding-left:0" data-a="cloudRestore">Az összekapcsolás előtti adatok visszaállítása</button>' : '') +
+        '<p class="help">Minden változás pár másodpercen belül felmegy, és megnyitáskor, illetve kétpercenként letöltöm a másik eszköz változásait. Ha mindkét helyen ugyanazt szerkesztetted, ennek az eszköznek a változata marad meg.</p>';
+      return h + '</div>';
+    }
+    if (c && c.waiting) {
+      return h + say('nyugodt', 'Ez az eszköz még üres, és a felhőben sincs adat. Csatlakoztasd előbb azt az eszközt, amin az adataid vannak – utána ez magától letölti őket.') +
+        qrBlock() + '<button type="button" class="btn" data-a="cloudCheck">Megnézem újra</button></div>';
+    }
+    if (u.ask) {
+      function cnt(x) { return x ? x.tasks + ' feladat, ' + x.events + ' esemény, ' + x.ideas + ' ötlet, ' + x.treasures + ' kincs' : '–'; }
+      return h + say('beszel', 'A felhőben már vannak Callan-adatok' + (u.device ? ' (' + esc(u.device) + ')' : '') + '. Melyik legyen az érvényes?') +
+        '<div class="inset" style="gap:6px"><div class="small"><b>Felhőben:</b> ' + cnt(u.remote) + '</div><div class="small"><b>Ezen az eszközön:</b> ' + cnt(u.local) + '</div></div>' +
+        '<button type="button" class="btn block" data-a="cloudStart" data-m="cloud">A felhőben lévők (új eszközön ezt válaszd)</button>' +
+        '<button type="button" class="btn block" style="background:var(--field);color:var(--ink)" data-a="cloudStart" data-m="local">Ennek az eszköznek az adatai</button></div>';
+    }
+    h += '<p class="help" style="font-size:14px">Ehhez egy kis közvetítő kell a Google-fiókodban (Google Apps Script). A beállítás lépései a Callan útmutatójában vannak; a végén kapsz egy címet és egy titkos kulcsot.</p>' +
+      '<label for="cl-url" class="label">Közvetítő címe</label><input id="cl-url" class="field" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc((c && c.url) || '') + '">' +
+      '<label for="cl-secret" class="label">Titkos kulcs</label><input id="cl-secret" class="field" autocomplete="off" placeholder="a Code.gs elején lévő SECRET" value="">' +
+      (u.error ? '<p class="help" style="color:#8A4B3A">' + esc(u.error) + '</p>' : '') +
+      '<p class="help">Tipp: ha a gépen már csatlakoztál, ott a „Másik eszköz csatlakoztatása” QR-kódjával a telefon egy mozdulattal csatlakozik.</p>' +
+      '<button type="button" class="btn" data-a="cloudConnect">Csatlakozás</button>';
+    return h + '</div>';
+  }
+
   function waterCard(state) {
     var w = state.settings.water || { plants: [] };
     var h = '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="frow"><div><div class="label">Öntözés</div><div class="small muted" style="margin-top:4px">Emlékeztető a Naptárban és a napod felett</div></div>' + sw(!!w.on, 'data-a="waterToggle"', 'Öntözés') + '</div>';
@@ -781,6 +834,7 @@
         '<p class="help">Ha elkezdődik, a Naptárban az adott napra koppintva rögzítheted; a becslés onnantól ehhez igazodik. Ez a megadott hosszakból számolt becslés, nem orvosi előrejelzés.</p>';
     }
     h += '</div>';
+    h += cloudCard(state, ui);
     h += waterCard(state);
     h += notifyCard(state, ui);
     h += '<div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="label">Biztonsági mentés</div><p class="help" style="font-size:14px">Az adataid ezen a telefonon vannak. A mentés egy fájl, amit a megosztás menüből a Google Drive-ra küldhetsz; telefoncserénél ebből állítod vissza.</p>' +

@@ -15,20 +15,20 @@
       r.onerror = function () { rej(r.error); };
     });
   }
-  function idbGet() {
+  function idbGet(key) {
     return openDB().then(function (db) {
       return new Promise(function (res, rej) {
-        var t = db.transaction(OS, 'readonly').objectStore(OS).get(KEY);
+        var t = db.transaction(OS, 'readonly').objectStore(OS).get(key || KEY);
         t.onsuccess = function () { res(t.result || null); };
         t.onerror = function () { rej(t.error); };
       });
     });
   }
-  function idbPut(val) {
+  function idbPut(val, key) {
     return openDB().then(function (db) {
       return new Promise(function (res, rej) {
         var tx = db.transaction(OS, 'readwrite');
-        tx.objectStore(OS).put(val, KEY);
+        tx.objectStore(OS).put(val, key || KEY);
         tx.oncomplete = function () { res(); };
         tx.onerror = function () { rej(tx.error); };
       });
@@ -36,7 +36,7 @@
   }
 
   S.load = function () {
-    return idbGet().catch(function () { return null; }).then(function (s) {
+    return idbGet(KEY).catch(function () { return null; }).then(function (s) {
       if (!s) {
         try { var raw = localStorage.getItem(LS_KEY); if (raw) s = JSON.parse(raw); } catch (e) { s = null; }
       }
@@ -52,11 +52,25 @@
   };
   S.saveNow = function (state) {
     var copy = JSON.parse(JSON.stringify(state));
-    return idbPut(copy).catch(function () {
+    return idbPut(copy, KEY).catch(function () {
       try { localStorage.setItem(LS_KEY, JSON.stringify(copy)); } catch (e) { /* tele a tároló */ }
     });
   };
   S.flush = function (state) { clearTimeout(timer); return S.saveNow(state); };
+
+  /* Eszközönkénti, nem szinkronizált adatok (pl. a közvetítő címe, a legutóbb szinkronizált állapot). */
+  S.getLocal = function (key) {
+    return idbGet(key).catch(function () { return null; }).then(function (v) {
+      if (v != null) return v;
+      try { var raw = localStorage.getItem('callan-' + key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+    });
+  };
+  S.putLocal = function (key, val) {
+    var copy = val == null ? null : JSON.parse(JSON.stringify(val));
+    return idbPut(copy, key).catch(function () {
+      try { localStorage.setItem('callan-' + key, JSON.stringify(copy)); } catch (e) { /* tele */ }
+    });
+  };
 
   S.persist = function () {
     if (navigator.storage && navigator.storage.persist) {
@@ -83,7 +97,7 @@
       });
       s.v = 3;
     }
-    ['categories', 'projects', 'activities', 'metrics', 'events', 'tasks', 'ideas', 'treasures', 'periods', 'treasureCats'].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; });
+    ['categories', 'projects', 'activities', 'metrics', 'events', 'tasks', 'ideas', 'treasures', 'periods', 'treasureCats', 'inboxLog', 'inboxApplied'].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; });
     ['metricLogs', 'days', 'overrides', 'notifySent'].forEach(function (k) { if (!s[k] || typeof s[k] !== 'object') s[k] = {}; });
     s.settings = Object.assign(S.defaultSettings(), s.settings || {});
     s.settings.cycle = Object.assign({ on: false, len: 28, period: 5 }, s.settings.cycle || {});

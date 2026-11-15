@@ -2,7 +2,7 @@
 (function () {
   var CA = window.CA = window.CA || {};
   var U = CA.util, Sch = CA.sched, Store = CA.store, V = CA.views;
-  CA.VERSION = '1.3.0';
+  CA.VERSION = '1.4.0';
   var ALL = [0, 1, 2, 3, 4, 5, 6];
 
   var state = null, root = null;
@@ -51,7 +51,14 @@
     if (!state || !state.settings.notify || (!state.settings.notify.on && !Object.keys(state.notifySent || {}).length)) return;
     CA.notify.sync(state).then(function () { Store.save(state); });
   }
-  function commit() { Store.save(state); render(); syncSoon(); }
+  var cloudTimer = null;
+  function cloudSoon(ms) {
+    var c = CA.sync && CA.sync.cfg();
+    if (!c || !c.connected) return;
+    clearTimeout(cloudTimer);
+    cloudTimer = setTimeout(function () { CA.sync.sync(); }, ms == null ? 4000 : ms);
+  }
+  function commit() { Store.save(state); render(); syncSoon(); cloudSoon(); }
   var toastTimer = null;
   function toast(text, a, id, label) {
     ui.toast = { text: text, a: a, id: id, label: label };
@@ -134,6 +141,7 @@
     }
     if (ui.sheet) ui.stack.push(ui.sheet);
     ui.sheet = s;
+    if (type === 'settings' && CA.sync) CA.sync.backup().then(function (b) { var v = !!(b && b.state); if (v !== !!ui.cloudBackup) { ui.cloudBackup = v; render(); } });
     render();
   }
   function closeSheet() { ui.sheet = ui.stack.pop() || null; render(); }
@@ -376,6 +384,47 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { toast('Témanév vágólapra másolva.'); }, function () { toast(t); });
     else toast(t);
   };
+  A.cloudConnect = function (d) {
+    var url = (d && d.url) || (document.getElementById('cl-url') || {}).value, sec = (d && d.secret) || (document.getElementById('cl-secret') || {}).value;
+    ui.cloud = { busy: true }; render();
+    CA.sync.connect(url, sec).then(function (r) {
+      if (!r.remoteHasData && r.localPristine) { ui.cloud = null; return CA.sync.wait().then(render); }   // üres eszköz, üres felhő: megvárjuk a telefont
+      if (!r.remoteHasData) return A.cloudStart({ m: 'local' });                                   // ezen vannak az adatok → fel
+      if (r.localPristine) return A.cloudStart({ m: 'cloud' });                                    // új eszköz → letölti
+      ui.cloud = { ask: true, savedAt: r.savedAt, device: r.device, remote: r.remote, local: r.local };
+      render();
+    }).catch(function (e) { ui.cloud = { error: e.message, url: url }; render(); });
+  };
+  A.cloudCheck = function () {
+    CA.sync.checkWaiting().then(function (got) { render(); toast(got ? 'Megjöttek az adatok. Összekapcsolva.' : 'A felhő még üres. Csatlakoztasd előbb a telefont.'); });
+  };
+  A.cloudCopy = function () {
+    var l = CA.sync.link();
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(l).then(function () { toast('Link vágólapra másolva. Csak magadnak küldd el!'); }, function () { toast(l); });
+    else toast(l);
+  };
+  A.cloudQR = function () { ui.cloudQR = !ui.cloudQR; render(); };
+  A.cloudRestore = function () {
+    if (!confirm('Visszaállítod az összekapcsolás előtti adatokat ezen az eszközön? Ezek kerülnek fel a felhőbe is.')) return;
+    CA.sync.restoreBackup().then(function (okk) { render(); toast(okk ? 'Visszaállítva.' : 'Nincs mit visszaállítani.'); });
+  };
+  A.cloudStart = function (d) {
+    if (d.m === 'local' && ui.cloud && ui.cloud.ask && !confirm('A felhőben lévő adatokat ennek az eszköznek az adatai írják felül. Folytatod?')) return;
+    if (d.m === 'cloud' && ui.cloud && ui.cloud.ask && !confirm('Ennek az eszköznek az adatait a felhőben lévők váltják fel. (Előtte elmentem őket, és a Beállításokban visszaállíthatod.) Folytatod?')) return;
+    ui.cloud = { busy: true }; render();
+    return CA.sync.start(d.m).then(function (r) {
+      ui.cloud = null; render();
+      toast(r && r.ok ? 'Összekapcsolva. Innentől minden eszközön ugyanaz látszik.' : 'Összekapcsolva, de a szinkron most nem sikerült. Újrapróbálom.');
+    }).catch(function (e) { ui.cloud = { error: e.message }; render(); });
+  };
+  A.cloudSync = function () {
+    CA.sync.sync().then(function (r) { render(); toast(r.ok ? 'Szinkronizálva.' : 'Nem sikerült: ' + (r.error || 'később újrapróbálom')); });
+  };
+  A.cloudOff = function () {
+    if (!confirm('Leválasztod ezt az eszközt? Az adatok itt megmaradnak, csak nem szinkronizál tovább.')) return;
+    CA.sync.disconnect().then(function () { ui.cloud = null; render(); });
+  };
+  A.newsOk = function () { CA.sync.markSeen(state); render(); };
   A.notifyCheck = function () {
     ui.notifyCheck = { loading: true };
     render();
@@ -628,6 +677,7 @@
     else if (k === 'last') { p.last = v || null; if (v) p.log = (p.log || []).filter(function (x) { return x !== v; }).concat([v]).slice(-60); }
     commit();
   };
+  CH.cloudDevice = function (el) { if (el.value.trim()) { CA.sync.setDevice(el.value.trim()); render(); } };
   CH.cycle = function (el) {
     var n = parseInt(el.value, 10);
     if (!n) return;
@@ -717,12 +767,40 @@
       bind();
       Store.persist().then(function (p) { ui.persisted = !!p; });
       registerSW();
+      CA.sync.init({
+        getState: function () { return state; },
+        setState: function (s, info) {
+          state = s; ui.day = null; ensureToday();
+          Store.save(state);
+          if (!isTyping()) render();
+          syncSoon();
+        },
+        isBusy: function () { return isTyping(); },
+        onChange: function () { if (ui.sheet && ui.sheet.type === 'settings') render(); }
+      }).then(function () {
+        // Csatlakozó link (QR-kódból vagy üzenetből): #callan-sync=…&k=…
+        var lk = CA.sync.parseLink(location.hash);
+        if (lk) {
+          try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+          var c0 = CA.sync.cfg();
+          if (!(c0 && c0.connected)) { openSheet('settings'); A.cloudConnect(lk); return; }
+        }
+        var c1 = CA.sync.cfg();
+        if (c1 && c1.waiting) CA.sync.checkWaiting().then(function (got) { if (got) render(); });
+        cloudSoon(300);
+      });
+      setInterval(function () {
+        if (document.hidden) return;
+        var c = CA.sync.cfg();
+        if (c && c.waiting) CA.sync.checkWaiting().then(function (got) { if (got) { render(); toast('Megjöttek az adatok. Összekapcsolva.'); } });
+        else cloudSoon(0);
+      }, 2 * 60000);
       setInterval(tick, 60000);
       setInterval(function () { syncSoon(0); }, 15 * 60000);
       syncSoon(1500);
       document.addEventListener('visibilitychange', function () {
-        if (document.hidden) { Store.flush(state); syncNow(); }
-        else { ensureToday(); if (!isTyping()) render(); syncSoon(800); }
+        if (document.hidden) { Store.flush(state); syncNow(); cloudSoon(0); }
+        else { ensureToday(); if (!isTyping()) render(); syncSoon(800); cloudSoon(500); }
       });
       window.addEventListener('pagehide', function () { Store.flush(state); syncNow(); });
     });
